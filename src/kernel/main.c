@@ -1,9 +1,8 @@
-#include "stdint.h"
-#include "stdio.h"
+//#include "stdint.h"
+//#include "stdio.h"
 
-
-void cstart(uint16_t bootDrive)
+//__attribute__ ((section ("cstart"))) 
+void cstart(void)
 {
-    puts("Hello world from C!\r\n");
     for (;;);
 }

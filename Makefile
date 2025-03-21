@@ -8,10 +8,11 @@ HD_IMG_NAME:="lnos.img"
 
 all: bootloader kernel
 	$(shell rm -rf $(HD_IMG_NAME))
-	bximage -q -hd=16 -mode=create -sectsize=512 -imgmode=flat $(HD_IMG_NAME)
-	dd if=${BUILD_DIR}/bootloader/boot.o of=$(HD_IMG_NAME) bs=512 seek=0 count=1 conv=notrunc
-	dd if=${BUILD_DIR}/bootloader/setup.o of=$(HD_IMG_NAME) bs=512 seek=1 count=1 conv=notrunc
-#	dd if=${BUILD_DIR}/kernel.bin of=$(HD_IMG_NAME) bs=512 seek=2 count=2 conv=notrunc
+#	# bximage -q -hd=16 -mode=create -sectsize=512 -imgmode=flat $(HD_IMG_NAME)
+	dd if=/dev/zero of=$(HD_IMG_NAME) bs=512 count=2880
+	dd if=${BUILD_DIR}/bootloader/boot.bin of=$(HD_IMG_NAME) bs=512 seek=0 count=1 conv=notrunc
+	dd if=${BUILD_DIR}/bootloader/setup.bin of=$(HD_IMG_NAME) bs=512 seek=1 count=4 conv=notrunc
+	dd if=${BUILD_DIR}/kernel.bin of=$(HD_IMG_NAME) bs=512 seek=5 conv=notrunc
 
 
 bootloader:
@@ -34,8 +35,9 @@ clean:
 
 
 bochs: all
-	bochs -q -f bochsrc
+	bochs -q -f bochsrc_floopy
 
 
 qemu: all
-	qemu-system-x86_64 -hda $(HD_IMG_NAME)
+#	floopy: -fda; hd: -hda
+	qemu-system-i386 -hda $(HD_IMG_NAME)

@@ -6,11 +6,11 @@ ASFLAGS=-f bin
 BUILD_DIR:=../../build
 
 SOURCES:=$(wildcard *.asm)
-OBJECTS:=$(patsubst %.asm, $(BUILD_DIR)/bootloader/%.o, $(SOURCES))
+OBJECTS:=$(patsubst %.asm, $(BUILD_DIR)/bootloader/%.bin, $(SOURCES))
 
 bootloader: ${OBJECTS}
 
-${BUILD_DIR}/bootloader/%.o: %.asm
+${BUILD_DIR}/bootloader/%.bin: %.asm
 	$(shell mkdir -p $(BUILD_DIR)/bootloader)
 	$(ASM) $(ASFLAGS) $< -o $@
 

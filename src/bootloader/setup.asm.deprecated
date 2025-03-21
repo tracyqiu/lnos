@@ -1,0 +1,108 @@
+;;; no org 0x500, load data by below code in boot.asm
+;;;
+;;;load_setup:
+;;;    mov bx, 0x500    ; data want to loaded to
+;;;    mov es, bx
+;;;    mov bx, 0
+;;;    call load_hd
+;;;    jmp 0x500:0x0
+
+bits 16
+
+jmp start
+
+
+%define ENDL 0x0A, 0x0D
+
+
+start:
+   mov bx, msg
+   call print_string
+
+   call get_input
+
+   hlt
+
+
+;
+; print string to screen
+; Params:
+;  - es:bx points to string
+; note: why es:bx instead of si? --> because of read hd code to 0x500 instead of writing [org 0x500]
+;
+print_string:
+   pusha
+   mov ax, 0x500
+   mov es, ax
+.loop:
+   mov al, [ES:BX]
+   cmp al, 0
+   je .endloop
+   mov bh, 0x0
+   mov ah, 0x0e
+   int 0x10
+   inc bx
+   jmp .loop
+
+.endloop
+   popa
+   ret
+
+
+;
+; Get user input, print to screen & run command
+;
+get_input:
+   pusha
+   mov di, msg_cmd
+
+.keyloop
+   mov ah, 0x00
+   int 0x16          ; BIOS int get keystroke ah=00, character goes into al
+
+   mov ah, 0x0E
+   mov bh, 0x0
+   cmp al, 0x0D      ; did user press 'enter' key?
+   je .run_command
+   int 0x10          ; if not, print input character to screen
+   mov [di], al
+   inc di
+   jmp .keyloop
+
+.run_command
+   mov byte [di], 0  ; null terminate cmd from di
+   mov al, [msg_cmd]
+   cmp al, 'R'
+   je .reboot
+   cmp al, 'C'
+   jne .not_found
+   mov bx, msg_success
+   call print_string
+   popa
+   call get_input
+
+.not_found
+   mov bx, msg_failure
+   call print_string
+   popa
+   call get_input
+
+.reboot
+   jmp 0xffff:0x0
+
+.end:
+   popa
+   ret
+
+
+msg:           db '-------------------------------', ENDL,\
+                  'Kernel Booted, Welcome to LnOS!', ENDL,\
+                  'C: switch to protected mode', ENDL, \
+                  'R: reboot', ENDL, \
+                  '-------------------------------', ENDL, 0
+msg_success:   db ENDL, 'Switch to protected mode', ENDL, 0
+msg_failure:   db ENDL, 'Oops! CMD not exist! :(', ENDL, 0
+msg_cmd:       db ''
+
+
+; times 512 - ($ - $$) db 0

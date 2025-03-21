@@ -1,0 +1,23 @@
+# how much memory the emulated machine will have
+megs: 128
+
+# filename for ROM images
+romimage: file="/usr/share/bochs/BIOS-bochs-latest"
+vgaromimage: file="/usr/share/bochs/VGABIOS-lgpl-latest"
+
+# what disk images will be used
+# floppya: image=lnos.img, status=inserted
+floppya: image=lnos.img, status=inserted
+
+# choose the boot disk
+boot: floppy
+
+# where do we send log messages
+log: bochsout_floppy.txt
+
+# disable the mouse
+mouse: enabled=0
+
+display_library: x, options="gui_debug"
+# support debug by add "xchg bx, bx"
+magic_break: enabled=1

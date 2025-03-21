@@ -8,6 +8,8 @@ bits 16
 ;
 global x86_output_char
 x86_output_char:
+   xchg bx, bx
+   xchg bx, bx
    ; create a new call frame
    push bp             ; save old call frame
    mov bp, sp          ; initialize new call frame
