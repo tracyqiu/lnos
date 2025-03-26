@@ -35,9 +35,18 @@ clean:
 
 
 bochs: all
-	bochs -q -f bochsrc_floopy
+#   bochs -q -f bochsrc_floopy
+	bochs -q -f bochsrc
 
 
 qemu: all
 #	floopy: -fda; hd: -hda
-	qemu-system-i386 -hda $(HD_IMG_NAME)
+#   非调试界面
+#   qemu-system-i386 -hda $(HD_IMG_NAME)
+
+#   qemu调试
+#   -s ：相当于 -gdb tcp::1234 ，在1234端口开启GDB服务器
+#   -S ：启动时暂停CPU执行，等待GDB连接
+#   -m 32 ：分配32MB内存
+	qemu-system-i386 -s -S -hda $(HD_IMG_NAME) -m 32
+

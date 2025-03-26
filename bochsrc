@@ -6,7 +6,7 @@ config_interface: textconfig
 display_library: x, options="gui_debug"
 
 memory: host=32, guest=32
-romimage: file="/usr/local/share/bochs/BIOS-bochs-latest", address=0x00000000, options=none  #address=0x00000000
+romimage: file="/usr/local/share/bochs/BIOS-bochs-latest", address=0x00000000, options=none
 vgaromimage: file="/usr/local/share/bochs/VGABIOS-lgpl-latest"
 #boot: floppy
 boot: disk
@@ -61,3 +61,9 @@ com1: enabled=true, mode=null
 com2: enabled=false
 com3: enabled=false
 com4: enabled=false
+
+
+#debugger: enabled=1, port=1234, command="target remote :1234"  #不可用
+#configure: error: --enable-debugger and --enable-gdb-stub are mutually exclusive
+#gdb: enabled=1
+#gdb: port=1234

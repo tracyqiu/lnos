@@ -22,11 +22,6 @@ KERNEL_ELF := $(BUILD_DIR)/kernel/kernel.elf
 
 $(TARGET): $(BUILD_DIR)/kernel.bin
 
-#$(BUILD_DIR)/kernel.bin: ${OBJECTS_ASM} ${OBJECTS_C}
-#	$(CC) $(CFLAGS) ${OBJECTS_ASM} ${OBJECTS_C} -g -o $@ -e cstart
-#	i686-elf-ld -Ttext 0x1000 --oformat binary ${OBJECTS_ASM} ${OBJECTS_C} -g -o $@ -e cstart
-#	i686-elf-ld -T linker.ld --oformat binary ${OBJECTS_ASM} ${OBJECTS_C} -g -o $@
-
 $(BUILD_DIR)/kernel.bin: $(KERNEL_ELF)
 	$(OBJCOPY) -O binary $(KERNEL_ELF) $@
 

@@ -2,8 +2,8 @@
 megs: 128
 
 # filename for ROM images
-romimage: file="/usr/share/bochs/BIOS-bochs-latest"
-vgaromimage: file="/usr/share/bochs/VGABIOS-lgpl-latest"
+romimage: file="/usr/local/share/bochs/BIOS-bochs-latest"
+vgaromimage: file="/usr/local/share/bochs/VGABIOS-lgpl-latest"
 
 # what disk images will be used
 # floppya: image=lnos.img, status=inserted
