@@ -1,7 +1,7 @@
-#ifndef STDIO_H_
-#define STDIO_H_
+#ifndef PRINT_H_
+#define PRINT_H_
 
 void puts(const char* str);
 void clear_screen();
 
-#endif //STDIO_H_
+#endif //PRINT_H_

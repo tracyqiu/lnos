@@ -79,35 +79,35 @@ load_kernel:
    call print_string
 
    ; 使用LBA模式读取扇区
-    mov si, disk_address_packet
-    mov word [si], 0x0010      ; 数据包大小 (16 bytes)
-    mov word [si+2], 32        ; 要读取的扇区数
-    mov word [si+4], 0x0000    ; 传输缓冲区偏移
-    mov word [si+6], 0x1000    ; 传输缓冲区段地址
-    mov dword [si+8], 5        ; 起始扇区LBA (0-based)
-    mov dword [si+12], 0       ; 起始扇区高32位 (用于大硬盘)
-    
-    mov ah, 0x42               ; EXT Read Sectors From Drive
-    mov dl, 0x80               ; floppy 0x00, hhd 0x80
-    int 0x13
-    jc kernel_load_error
-    
-    mov si, msg_hd_success
-    call print_string
-    ret
+   mov si, disk_address_packet
+   mov word [si], 0x0010      ; 数据包大小 (16 bytes)
+   mov word [si+2], 32        ; 要读取的扇区数
+   mov word [si+4], 0x0000    ; 传输缓冲区偏移
+   mov word [si+6], 0x1000    ; 传输缓冲区段地址
+   mov dword [si+8], 5        ; 起始扇区LBA (0-based)
+   mov dword [si+12], 0       ; 起始扇区高32位 (用于大硬盘)
+   
+   mov ah, 0x42               ; EXT Read Sectors From Drive
+   mov dl, 0x80               ; floppy 0x00, hhd 0x80
+   int 0x13
+   jc kernel_load_error
+   
+   mov si, msg_hd_success
+   call print_string
+   ret
 
 disk_address_packet:
-    times 16 db 0
+   times 16 db 0
     
 
 kernel_load_error:
-    mov si, msg_hd_failed
-    call print_string
-    
-    mov al, ah      ; error code in ah
-    call print_hex  ; print error code
-    
-    jmp $
+   mov si, msg_hd_failed
+   call print_string
+   
+   mov al, ah      ; error code in ah
+   call print_hex  ; print error code
+   
+   jmp $
 
 
 ;
@@ -230,6 +230,15 @@ protected_mode:
    xchg bx, bx
    call setup_paging
 
+   xchg bx, bx
+   xchg bx, bx
+   call setup_idt
+   call setup_8259a
+
+   ; test exception_handler
+   ;xor eax, eax 
+   ;div eax
+
    ; jmp to kernel
    jmp CODE_SEG:0x10000
 
@@ -275,7 +284,9 @@ vga_print:
    popa
    ret
 
+
 protected_mode_msg db "in 32 mode", 0
+exception_msg        db  '********Exception encountered********',0
 
 
 
@@ -305,38 +316,126 @@ protected_mode_msg db "in 32 mode", 0
 ;   1023PDE          ...
 ;
 setup_paging:
-    ; step 1: create page table
-    ; 实模式下内存可访问0-1M的空间, 所以页表结构就放在紧邻1M之上的位置0x100000(1M=0xfffff), 避免冲突
-    mov edi, 0x100000  ; 页目录起始地址
-    xor eax, eax
-    mov ecx, 1024      ; 页目录(PDT表)有1024项
-    rep stosd          ; 将eax的值放到ES:DI中, 即初始化页表, stosd可使edi自增
-    
-    mov edi, 0x101000  ; 第一个页表地址
-    mov ecx, 1024      ; 页表(PTT表)有1024项
-    rep stosd
-    
-    ; 第一个页目录指向第一个页表
-    mov dword [0x100000], 0x101003  ; 存在，可写
-    
-    ; 将0-0PTE的虚拟地址与物理地址做一一映射, 0-4MB <==> 0x0 - 0x400000(就包含了实模式下的1M空间)
-    mov edi, 0x101000  ; 第一个页表地址0-0PTE
-    mov eax, 0x3       ; 存在，可写
-    mov ecx, 1024      ; 映射1024个页面（1024 * 4K == 4MB）
+   ; step 1: create page table
+   ; 实模式下内存可访问0-1M的空间, 所以页表结构就放在紧邻1M之上的位置0x100000(1M=0xfffff), 避免冲突
+   mov edi, 0x100000  ; 页目录起始地址
+   xor eax, eax
+   mov ecx, 1024      ; 页目录(PDT表)有1024项
+   rep stosd          ; 将eax的值放到ES:DI中, 即初始化页表, stosd可使edi自增
+   
+   mov edi, 0x101000  ; 第一个页表地址
+   mov ecx, 1024      ; 页表(PTT表)有1024项
+   rep stosd
+   
+   ; 第一个页目录指向第一个页表
+   mov dword [0x100000], 0x101003  ; 存在，可写
+   
+   ; 将0-0PTE的虚拟地址与物理地址做一一映射, 0-4MB <==> 0x0 - 0x400000(就包含了实模式下的1M空间)
+   mov edi, 0x101000  ; 第一个页表地址0-0PTE
+   mov eax, 0x3       ; 存在，可写
+   mov ecx, 1024      ; 映射1024个页面（1024 * 4K == 4MB）
 .init_page_loop:
-    stosd
-    add eax, 0x1000    ; 下一个页面 0x1000==4K
-    loop .init_page_loop
-    
-    ; step 2: 页表地址写入cr3
-    mov eax, 0x100000
-    mov cr3, eax
-    
-    ; step 3: 设置cr的PE位以开启CPU分页模式
-    mov eax, cr0
-    or eax, 0x80000000 ; 第31位 PG位
-    mov cr0, eax
-    
-    ret
+   stosd
+   add eax, 0x1000    ; 下一个页面 0x1000==4K
+   loop .init_page_loop
+   
+   ; step 2: 页表地址写入cr3
+   mov eax, 0x100000
+   mov cr3, eax
+   
+   ; step 3: 设置cr的PE位以开启CPU分页模式
+   mov eax, cr0
+   or eax, 0x80000000 ; 第31位 PG位
+   mov cr0, eax
+   
+   ret
+
+
+;
+; refer to x86汇编语言-从实模式到保护模式.pdf part 17
+;
+setup_idt:
+   ; step 1: initial Interrupt Descriptor Table
+   mov edi, 0x102000  ; 放在紧邻页表的后面(页表中PDT占1024*4B, 第一个PTT占4K, 总共8K = 0x2000)
+   xor eax, eax
+   mov ecx, 256*8     ; IDT大小
+   rep stosd
+   
+   ; 安装前20个异常中断处理过程（0-19）
+   ; refer to x86汇编语言-从实模式到保护模式.pdf part 17.1.2 中断门格式
+   mov edi, 0x102000
+   mov eax, general_exception_handler
+   and eax, 0xFFFF    ; 保存低16位
+   mov ebx, general_exception_handler
+   shr ebx, 16        ; 右移16位, 保存高16位
+   xor esi, esi
+.idt0:
+   mov word [edi], ax         ; 处理程序在目标代码段内的偏移量15-00位
+   mov word [edi+2], CODE_SEG ; 代码段选择子
+   mov byte [edi+4], 0        ; 不使用
+   mov byte [edi+5], 0x8E     ; P=1, DPL=00, S=0, TYPE=1110 (32位中断门)
+   mov word [edi+6], bx       ; 处理程序在目标代码段内的偏移量31-16位
+   add edi, 8                 ; 下一个IDT项
+   inc esi
+   cmp esi, 19
+   jle .idt0
+
+
+   ; enable interrupt
+   ; step 2: initial Interrupt Descriptor Table
+   mov word [idt_descriptor], 256*8-1       ; IDT size
+   mov dword [idt_descriptor+2], 0x102000   ; IDT address
+   lidt [idt_descriptor]                    ; 加载中断描述符表寄存器IDTR
+   
+   ret
+   
+
+general_exception_handler: 
+   mov esi, exception_msg
+   mov edi, 0xB8000 + 80*44     ; output address
+   call vga_print
+   
+   hlt
+
+;
+; 设置8259A中断控制器
+; refer to x86汇编语言-从实模式到保护模式.pdf part 17.3.4
+; 主片的端口号是0x20 和0x21，从片的端口号是0xA0 和0xA1
+; 中断向量0x20～0xFF（32～255）是用户可以自由分配的部分
+;   
+setup_8259a:
+   ; ICW1: 边沿触发/级联方式, 每次8259A 芯片接到ICW1 时，都意味着一个新的初始化过程开始了
+   mov al, 0x11
+   out 0x20, al
+   out 0xA0, al
+   
+   ; ICW2: 中断向量表
+   mov al, 0x20
+   out 0x21, al       ; 主片范围0x20～0x27
+   mov al, 0x28
+   out 0xA1, al       ; 从片就从0x28开始
+   
+   ; ICW3: 从片级联到IR2
+   mov al, 0x04
+   out 0x21, al
+   mov al, 0x02
+   out 0xA1, al
+   
+   ; ICW4: 多片级联, 采用非自动结束方式
+   mov al, 0x01
+   out 0x21, al
+   out 0xA1, al
+   
+   ; 设置中断屏蔽
+   mov al, 0xFF       ; 暂时屏蔽所有中断，由内核开启
+   out 0x21, al
+   out 0xA1, al
+   
+   ret
+
+idt_descriptor:
+   dw 0    ; idt size, 16位表界限
+   dd 0    ; idt address, 32位基地址
+
 
 times 2048 - ($ - $$) db 0
