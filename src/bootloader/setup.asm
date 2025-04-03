@@ -228,7 +228,7 @@ protected_mode:
 
    xchg bx, bx
    xchg bx, bx
-   call setup_paging
+   ;call setup_paging
 
    xchg bx, bx
    xchg bx, bx
@@ -285,9 +285,19 @@ vga_print:
    ret
 
 
-protected_mode_msg db "in 32 mode", 0
+protected_mode_msg   db "in 32 mode", 0
 exception_msg        db  '********Exception encountered********',0
 
+key_pressed_msg      db "Key pressed! scancode:", 0
+key_pressed_msg_len  equ $ - key_pressed_msg - 1
+keyboard_cursor      dd 0xB8000 + 80*48 + key_pressed_msg_len*2
+scancode_to_ascii:
+                     db 0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0
+                     db 0, 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 0
+                     db 0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'", '`'
+                     db 0, '\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0, 
+                     db '*', 0, ' ', 0
+scancode_to_ascii_len equ $ - scancode_to_ascii - 1
 
 
 ;
@@ -380,6 +390,9 @@ setup_idt:
    cmp esi, 19
    jle .idt0
 
+   ; 安装键盘的中断处理过程, 
+   ; 这个操作须在lidt [idt_descriptor]之前否则执行时会触发general_exception_handler异常
+   call setup_keyboard_irq
 
    ; enable interrupt
    ; step 2: initial Interrupt Descriptor Table
@@ -428,14 +441,80 @@ setup_8259a:
    
    ; 设置中断屏蔽
    mov al, 0xFF       ; 暂时屏蔽所有中断，由内核开启
-   out 0x21, al
+   ;out 0x21, al
    out 0xA1, al
+   
+   mov al, 0xFD       ; 只允许IRQ1 (键盘)
+   out 0x21, al
    
    ret
 
 idt_descriptor:
    dw 0    ; idt size, 16位表界限
    dd 0    ; idt address, 32位基地址
+
+
+
+;
+; 安装键盘的中断处理过程, IRQ1==0x21
+;
+setup_keyboard_irq:
+   pushad
+   
+   mov eax, keyboard_irq_handler
+   mov ebx, 0x102000 + 0x21 * 8
+   mov word [ebx], ax
+   mov word [ebx+2], 0x08
+   mov byte [ebx+4], 0
+   mov byte [ebx+5], 0x8E
+   shr eax, 16
+   mov word [ebx+6], ax
+   
+   popad
+   ret
+
+
+keyboard_irq_handler:
+   pushad
+   
+   in al, 0x60          ; read keyboard scan code
+   mov bl, al
+   
+   test bl, 0x80
+   jnz .end_handler
+
+   mov edi, 0xB8000 + 80*48
+   mov ah, 0x07
+   mov esi, key_pressed_msg
+.print_msg:
+   lodsb
+   test al, al
+   jz .print_scancode
+   mov [edi], ax
+   add edi, 2
+   jmp .print_msg
+
+.print_scancode
+   movzx esi, bl
+   cmp esi, scancode_to_ascii_len
+   jae .end_handler
+   mov al, [scancode_to_ascii + esi]
+   test al, al
+   jz .end_handler
+   
+   mov edi, [keyboard_cursor]
+   mov [edi], ax
+   add edi, 2           ; move keyboard_cursor to next character place
+   mov [keyboard_cursor], edi
+
+.end_handler:
+   mov al, 0x20
+   out 0x20, al         ; send EOI(end of interrupt) signal
+   
+   popad
+   iret
+
+
 
 
 times 2048 - ($ - $$) db 0
