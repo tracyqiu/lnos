@@ -1,3 +1,30 @@
+bits 32
+section .text
+
+
+global x86_inb
+global x86_outb
+
+x86_outb:
+   mov dx, [esp + 4]      ; port
+   mov al, [esp + 8]      ; value
+   out dx, al
+   ret
+
+x86_inb:
+   mov dx, [esp + 4]      ; value
+   xor eax, eax
+   in al, dx
+   ret
+
+
+
+
+
+
+
+
+%if 0
 section .text
 bits 16
 
@@ -38,3 +65,5 @@ x86_output_char:
    pop bp
 
    ret
+
+%endif

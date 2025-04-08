@@ -1,0 +1,20 @@
+{
+   "files.associations": {
+      "isr.h": "c"
+   },
+   "editor.tabSize": 3,
+   "editor.insertSpaces": true,
+   "editor.detectIndentation": false,
+   "editor.formatOnSave": true,
+   "editor.formatOnType": true,
+   "editor.renderWhitespace": "all",
+   "files.trimTrailingWhitespace": true,
+   "files.insertFinalNewline": true,
+   "C_Cpp.clang_format_style": {
+      "BasedOnStyle": "Google",
+      "IndentWidth": 3,
+      "TabWidth": 3,
+      "UseTab": "Never",
+      "ColumnLimit": 100
+   }
+}

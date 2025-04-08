@@ -8,6 +8,10 @@ SECTIONS
   . = phys;
 
   .text : {
+    /* Make sure the entry point code is placed at the very beginning, 
+     * otherwise the execution entry point will become random when the assembly code file is added. 
+     **/
+    *(.text.c_start) 
     *(.text) 
   }
 

@@ -1,7 +1,6 @@
-#ifndef KEYBOARD_H_
-#define KEYBOARD_H_
+#ifndef KEYBOARD_H
+#define KEYBOARD_H
 
 void init_keyboard();
-// void keyboard_handler();
 
-#endif //KEYBOARD_H_
+#endif //KEYBOARD_H

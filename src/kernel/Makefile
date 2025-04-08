@@ -29,14 +29,14 @@ $(BUILD_DIR)/kernel/asm/%.o: %.asm
 	$(shell mkdir -p $(BUILD_DIR)/kernel/asm)
 	$(ASM) $(ASFLAGS) $< -o $@
 
-
 $(BUILD_DIR)/kernel/c/%.o: %.c
 	$(shell mkdir -p $(BUILD_DIR)/kernel/c)
 	$(CC) $(CFLAGS_PATH) $(CFLAGS) -c $< -g -o $@
 
-# 链接内核
+# Make sure the entry point code is placed at the very beginning, 
+# otherwise the execution entry point will become random when the assembly code file is added.
 $(KERNEL_ELF): ${OBJECTS_ASM} ${OBJECTS_C}
-	$(LD) $(LDFLAGS) -o $@ $^
+	$(LD) $(LDFLAGS) -o $@ $(BUILD_DIR)/kernel/c/main.o $(filter-out $(BUILD_DIR)/kernel/c/main.o, $^)
 
 clean:
 	$(shell rm -rf $(BUILD_DIR)/kernel.bin)
