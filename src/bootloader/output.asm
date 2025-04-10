@@ -2,6 +2,9 @@
 ;;; output.asm: print string
 ;;;
 
+%ifndef OUTPUT_ASM
+%define OUTPUT_ASM
+
 ;
 ; Prints a string to screen
 ; Params:
@@ -65,3 +68,6 @@ print_hex:
 
    popa
    ret
+
+
+%endif

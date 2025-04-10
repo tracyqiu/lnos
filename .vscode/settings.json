@@ -1,20 +1,23 @@
 {
-   "files.associations": {
-      "isr.h": "c"
-   },
-   "editor.tabSize": 3,
-   "editor.insertSpaces": true,
-   "editor.detectIndentation": false,
-   "editor.formatOnSave": true,
-   "editor.formatOnType": true,
-   "editor.renderWhitespace": "all",
-   "files.trimTrailingWhitespace": true,
-   "files.insertFinalNewline": true,
-   "C_Cpp.clang_format_style": {
-      "BasedOnStyle": "Google",
-      "IndentWidth": 3,
-      "TabWidth": 3,
-      "UseTab": "Never",
-      "ColumnLimit": 100
-   }
+    "editor.defaultFormatter":"chiehyu.vscode-astyle",
+    "astyle.astylerc": "C:/sw/Astyle/bin/.astylerc",
+    "astyle.cmd_options": ["-J", "-k1", "-W1", "-xU", "-Y", "-xW", "-w", "-s3", "-O", "-o", "-xg", "-H", "-p", "-A1", "-U"],
+    "window.zoomLevel": 0,
+    "C_Cpp.updateChannel": "Insiders",
+    "editor.fontSize": 14,
+    "editor.renderWhitespace": "all",
+    "cSpell.userWords": ["CFTS"],
+    "editor.minimap.enabled": true,
+    "editor.rulers": [120],
+    "editor.tabSize": 3,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "workbench.colorTheme": "Default Dark Modern",
+    "breadcrumbs.enabled": true,
+    "editor.renderControlCharacters": false,
+    "files.trimTrailingWhitespace": true, // 在文件保存时，自动消除行尾的空格，和格式化工具里的功能相同
+    "editor.minimap.showSlider": "always",
+    "files.autoSave": "afterDelay",
+    "remote.SSH.defaultForwardedPorts": [
+    ],// 在小地图中高亮当前视图下的代码区域
 }
