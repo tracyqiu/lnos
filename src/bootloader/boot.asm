@@ -3,7 +3,7 @@ bits 16
 
 jmp _start
 
-%define ENDL 0x0D, 0x0A 
+%define ENDL 0x0D, 0x0A
 %include "output.asm"
 
 _start:
@@ -24,7 +24,7 @@ _start:
 ;   xchg bx, bx   ; bochs break point
 ;   xchg bx, bx
 
-   ; reset HD 
+   ; reset HD
    mov ah, 0
    int 13h
    jc disk_error
@@ -38,7 +38,7 @@ _start:
 ; Read 4 sector from disk
 load_setup_org:
    mov bx, 0x500   ; the address is the same with setup org address
-   
+
    mov ah, 0x02    ; function number:AH=0x02 means read hard disk sector
    mov al, 0x04    ; 1 sector to read
    mov ch, 0x00    ; cylinder
@@ -50,7 +50,7 @@ load_setup_org:
 
    mov si, msg_hd_success
    call print_string
-   
+
    jmp 0x0:0x500
 
 %if 0
@@ -87,7 +87,7 @@ disk_error:
 
 msg_hd_start_read:  db 'Start read HD...', ENDL, 0
 msg_hd_failed:      db 'HD error! :(', ENDL, 0
-msg_hd_success:     db 'load setup.asm sucess! :)', ENDL, 0
+msg_hd_success:     db 'Load setup.asm sucess! :)', ENDL, 0
 
 
 times 510 - ($ - $$) db 0

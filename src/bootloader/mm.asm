@@ -20,7 +20,6 @@ query_memory:
    cmp eax, SIGNATURE_SMAP       ; BIOS should return 'SMAP' in eax
    jne .error
 
-
    test ebx, ebx                 ; ebx=0 means only one range of physical memory
    je .done
 
@@ -37,6 +36,9 @@ query_memory:
 .done:
    mov dword [0x7000], 0x8000    ; save the address of memory mapping info to 0x7000
    mov dword [0x7004], edi       ; save size to 0x7004
+
+   call find_highest_address
+
    jmp .print_success_info
 
 .error:
@@ -53,22 +55,70 @@ query_memory:
    call print_string
 
    mov eax, [0x7000]
-   call print_hex
+   call print_hex_32
 
    mov si, msg_mm_size
    call print_string
 
    mov eax, [0x7004]
-   call print_hex
+   call print_hex_32
+
+   mov si, msg_end
+   call print_string
+
+   mov si, msg_mm_highest_addr
+   call print_string
+
+   mov eax, [0x7008]
+   call print_hex_32
 
    mov si, msg_end
    call print_string
    ret
 
 
+;
+; find the highest available memory address to reset the stack pointer in setup.asm
+;
+find_highest_address:
+   ; calculate how many entries of Address Range Descriptor structure and save to ecx
+   mov ecx, edi
+   sub ecx, 0x8000
+   mov eax, ecx
+   xor edx, edx
+   mov ecx, 24
+   div ecx
+   mov ecx, eax                  ; command loop checks and decrements the value of ecx
 
-SIGNATURE_SMAP  equ 0x534D4150
+   xor edx, edx                  ; use edx to save the highest address
+   mov esi, 0x8000
+
+.find_highest_addr:
+   cmp dword [esi + 16], MEMORY_AVAILABLE
+   jne .next_range
+
+   mov eax, [esi]                ; base address(address_start)
+   mov ebx, [esi + 8]            ; length
+   add eax, ebx                  ; address_end
+   cmp eax, edx                  ; cmp the highest address
+   jbe .next_range
+   mov edx, eax
+
+.next_range:
+   add esi, 24
+   loop .find_highest_addr
+
+;.done
+   mov dword [0x7008], edx       ; save highest available address to 0x7008
+   ret
+
+
+
+
+SIGNATURE_SMAP    equ 0x534D4150
+MEMORY_AVAILABLE  equ 1
 msg_mm_addr:         db 'Obtain memory layout info success :) mm addr: 0x',0
 msg_mm_size:         db ', mm size: 0x', 0
 msg_end:             db 13, 10, 0
+msg_mm_highest_addr: db 'memory highest_addr: 0x', 0
 msg_mm_failed:       db 'Ops, memory detect error :(', 13, 10, 0

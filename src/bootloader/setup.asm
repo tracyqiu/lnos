@@ -228,7 +228,13 @@ protected_mode:
    mov fs, ax
    mov gs, ax
    mov ss, ax
-   mov esp, 0x90000     ; set esp (stack pointer)
+   mov esp, 0x90000      ; set esp (stack pointer)
+   %if 0
+   ; The stack in the boot loader stage is only used temporarily and only needs to support a small number of function calls and data storage,
+   ; so it doesn't require a large space.
+   ;mov esp, [0x7008]     ; reset stack pointer after detecting memory
+   ;sub esp, 4096         ; sub 4KB for safety
+   %endif
 
    mov esi, protected_mode_msg
    mov edi, 0xB8000 + 80*42     ; output address

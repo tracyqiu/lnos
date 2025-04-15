@@ -17,21 +17,21 @@ typedef struct {
     * */
    uint8_t flags;
    uint16_t base_high;              // Higher 16 bits of handler function address
-} __attribute__((packed)) IDT_Entry;
+} __attribute__((packed)) idt_entry_t;
 
 // register IDTR
-struct IDT_Descriptor {
+struct idt_descriptor_t {
    uint16_t limit;                  // IDT size
    uint32_t base;                   // IDT address
 } __attribute__((packed));
 
 
-IDT_Entry idt[256];
-struct IDT_Descriptor lidt = { sizeof(IDT_Entry) * 256 - 1, (uint32_t)&idt };
+static idt_entry_t idt[256];
+static struct idt_descriptor_t lidt = { sizeof(idt_entry_t) * 256 - 1, (uint32_t)&idt };
 
 
 //------------------------------------------------------------------------------
-void load_idt()
+static void load_idt()
 //------------------------------------------------------------------------------
 {
    // Don't make the mistake of loading &idt -- always load &lidt
@@ -39,7 +39,7 @@ void load_idt()
 }
 
 //------------------------------------------------------------------------------
-void set_idt_gate(uint8_t num, uint32_t base)
+static void set_idt_gate(uint8_t num, uint32_t base)
 //------------------------------------------------------------------------------
 {
    idt[num].base_low = base & 0xFFFF;

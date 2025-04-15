@@ -4,10 +4,10 @@
 #include "print.h"
 
 
-handler_ptr interrupt_handlers[256];
+static handler_ptr interrupt_handlers[256];
 
 // To print the message which defines every exception
-char *exception_messages[] = {
+static char *exception_messages[] = {
    "Division By Zero",
    "Debug",
    "Non Maskable Interrupt",
@@ -46,14 +46,14 @@ char *exception_messages[] = {
 };
 
 //------------------------------------------------------------------------------
-void register_interrupt_handler(uint8_t n, handler_ptr handler) 
+void register_interrupt_handler(uint8_t n, handler_ptr handler)
 //------------------------------------------------------------------------------
 {
    interrupt_handlers[n] = handler;
 }
 
 //------------------------------------------------------------------------------
-void isr_handler(registers_t *regs) 
+void isr_handler(registers_t *regs)
 //------------------------------------------------------------------------------
 {
    puts("received interrupt: ");
@@ -61,7 +61,7 @@ void isr_handler(registers_t *regs)
 }
 
 //------------------------------------------------------------------------------
-void irq_handler(registers_t *regs) 
+void irq_handler(registers_t *regs)
 //------------------------------------------------------------------------------
 {
    if (interrupt_handlers[regs->int_no] != NULL) {

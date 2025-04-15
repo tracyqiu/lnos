@@ -36,7 +36,7 @@
 // refer to Writing VGA Driver https://dev.to/frosnerd/writing-my-own-vga-driver-22nn
 // 格式1: asm(“汇编代码” : 输出部分 : 输入部分 : 改变的寄存器部分)。
 // 格式2: __asm__(“汇编代码” : 输出部分 : 输入部分 : 改变的寄存器部分)。
-int16_t get_cursor() {
+static int16_t get_cursor() {
 //------------------------------------------------------------------------------
    asm volatile ("out %%al, %%dx" : : "a"(VGA_OFFSET_HIGH), "d"(VGA_CTRL_REGISTER));
 
@@ -53,7 +53,7 @@ int16_t get_cursor() {
 
 //------------------------------------------------------------------------------
 // refer to Writing VGA Driver https://dev.to/frosnerd/writing-my-own-vga-driver-22nn
-void set_cursor(int16_t offset) {
+static void set_cursor(int16_t offset) {
 //------------------------------------------------------------------------------
    // 通过端口0x3D4, 0x3D5用于控制VGA光标
    // asm volatile ("outb %%al, %%dx" : : "a"(VGA_OFFSET_HIGH), "d"(VGA_CTRL_REGISTER));
@@ -68,7 +68,7 @@ void set_cursor(int16_t offset) {
 }
 
 //------------------------------------------------------------------------------
-void scroll() {
+static void scroll() {
 //------------------------------------------------------------------------------
    uint16_t *video_memory = (uint16_t*)VGA_STARTED_MEMORY_ADDR;
 
@@ -89,7 +89,7 @@ void scroll() {
 }
 
 //------------------------------------------------------------------------------
-void scroll_screen(int16_t* row) {
+static void scroll_screen(int16_t* row) {
 //------------------------------------------------------------------------------
    if (*row >= SCREEN_HEIGHT) {
       scroll();
@@ -98,7 +98,7 @@ void scroll_screen(int16_t* row) {
 }
 
 //------------------------------------------------------------------------------
-int16_t find_output_row() {
+/*static*/ int16_t find_output_row() {
 //------------------------------------------------------------------------------
    uint16_t *output_vga_addr = (uint16_t*)VGA_STARTED_MEMORY_ADDR;
 
@@ -109,11 +109,11 @@ int16_t find_output_row() {
          // if has valid character, return the next row
          if ((output_vga_addr[offset] & 0xFF) != ' ' && (output_vga_addr[offset] & 0xFF) != 0) {
             // if current row is the last row, scroll screen
-            // if call scroll after find_output_row returned will cause the last line contents missing and cannot out put in the last line
             if (row + 1 >= SCREEN_HEIGHT) {
                scroll();
                return SCREEN_HEIGHT - 1;
-            } else {
+            }
+            else {
                return row + 1;
             }
          }
@@ -124,7 +124,7 @@ int16_t find_output_row() {
 }
 
 //------------------------------------------------------------------------------
-void putc(char c, int16_t col, int16_t row)
+static void putc(char c, int16_t col, int16_t row)
 //------------------------------------------------------------------------------
 {
    uint16_t *output_vga_addr = (uint16_t*)VGA_STARTED_MEMORY_ADDR;
@@ -133,7 +133,7 @@ void putc(char c, int16_t col, int16_t row)
 }
 
 //------------------------------------------------------------------------------
-void putint(int16_t num, int16_t col, int16_t row) {
+/*static*/ void putint(int16_t num, int16_t col, int16_t row) {
 //------------------------------------------------------------------------------
    if (num < 0) {
       putc('-', col, row);
@@ -182,7 +182,7 @@ void puts(const char* str)
    // putint(row, 0, row);
    // int16_t col = 3;
 
-    int16_t col = 0;
+   int16_t col = 0;
    */
 
    while(*str)
@@ -224,3 +224,4 @@ void clear_screen() {
    }
    set_cursor(0);
 }
+

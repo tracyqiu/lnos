@@ -9,13 +9,13 @@ typedef struct {
    uint8_t access;         // access
    uint8_t granularity;    // limit (bits 16-19) | flags
    uint8_t base_high;      // base (bits 24-31)
-} __attribute__((packed)) GDT_Entry;
+} __attribute__((packed)) gdt_entry_t;
 
 // register GDTR
 typedef struct {
    uint16_t limit;         // sizeof(gdt) - 1
-   uint32_t base;          // address of GDT == GDT_Entry* addr
-} __attribute__((packed)) GDT_Descriptor;
+   uint32_t base;          // address of GDT == gdt_entry_t* addr
+} __attribute__((packed)) gdt_descriptor_t;
 
 
 typedef enum
@@ -61,7 +61,7 @@ typedef enum
 }
 
 
-GDT_Entry gdt[] = {
+static gdt_entry_t gdt[] = {
    // NULL descriptor
    GDT_ENTRY(0, 0, 0, 0),
 
@@ -90,8 +90,8 @@ GDT_Entry gdt[] = {
              (GDT_FLAG_32BIT | GDT_FLAG_GRANULARITY_4K)),
 };
 
-GDT_Descriptor lgdt = {
-   sizeof(GDT_Entry) * 5 - 1,
+static gdt_descriptor_t lgdt = {
+   sizeof(gdt_entry_t) * 5 - 1,
    (uint32_t)&gdt
 };
 

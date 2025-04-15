@@ -35,8 +35,9 @@ print_string:
    popa
    ret
 
+
 ;
-; print hex to screen
+; print (8bit) hex to screen
 ; Params：
 ;  - al point to hex
 ;
@@ -69,5 +70,30 @@ print_hex:
    popa
    ret
 
+
+;
+; print (32bit) hex to screen
+; Params：
+;  - eax point to hex
+;
+print_hex_32:
+   pusha
+   mov cx, 8       ; print 8 hex numbers (8 bit)
+   mov ebx, eax    ; save original hex numbers to bh
+.loop:
+   rol ebx, 4      ; loop and shift, to put the higher 4 bit to the lower 4 bit position
+   mov al, bl
+   and al, 0x0F    ; lower 4 bit valid
+   add al, '0'     ; convert to ASCII
+   cmp al, '9'
+   jle .print
+   add al, 7       ; 'A'-'9'-1
+.print:
+   mov ah, 0x0E    ; call bios interrupt
+   int 0x10
+   loop .loop
+
+   popa
+   ret
 
 %endif
