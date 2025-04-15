@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "keyboard.h"
 #include "stdlib.h"
+#include "timer.h"
 
 
 //------------------------------------------------------------------------------
@@ -50,6 +51,8 @@ __attribute__((section(".text.c_start"))) void cstart(void)
    test_allocate_memory();
 
    asm volatile ("sti");
+
+   init_timer(50);
 
    init_keyboard();
    puts("Keyboard input is now enabled.\n");
