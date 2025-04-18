@@ -10,8 +10,15 @@ void* get_free_page();
 
 void free_page(void* page_addr);
 
-void* kernel_malloc(uint32_t size);
+void* malloc_physical_memory(uint32_t size);
 
-void kernel_free(void* ptr);
+void free_physical_memory(void* addr);
+
+void* malloc_aligned_physical_memory(uint32_t size, uint32_t alignment);
+
+void free_aligned_physical_memory(void* aligned_addr);
+
+uint32_t get_allocated_physical_size(void* physical_addr);
+
 
 #endif

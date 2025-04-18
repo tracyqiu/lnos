@@ -234,7 +234,7 @@ static heap_block_t* kmalloc_on_page(uint32_t size)
 }
 
 //------------------------------------------------------------------------------
-void* kernel_malloc(uint32_t size)
+void* malloc_physical_memory(uint32_t size)
 //------------------------------------------------------------------------------
 {
    if (!heap_start_block_list) {
@@ -276,7 +276,7 @@ void* kernel_malloc(uint32_t size)
 }
 
 //------------------------------------------------------------------------------
-void kernel_free(void* ptr)
+void free_physical_memory(void* ptr)
 //------------------------------------------------------------------------------
 {
    if (!ptr) return;
@@ -297,3 +297,46 @@ void kernel_free(void* ptr)
       }
    }
 }
+
+//------------------------------------------------------------------------------
+void* malloc_aligned_physical_memory(uint32_t size, uint32_t alignment)
+//------------------------------------------------------------------------------
+{
+   // align to multiples of 2
+   if (alignment & (alignment - 1)) return NULL;
+
+   // add sizeof(uint32_t) to store the physical_addr get from function malloc_physical_memory()
+   uint32_t size_needed = size + alignment + sizeof(uint32_t);
+   uint32_t physical_addr = (uint32_t)malloc_physical_memory(size_needed);
+   if (!physical_addr) return NULL;
+
+   // physical_addr will be placed before the aligned_addr, so + sizeof(uint32_t)
+   uint32_t addr = physical_addr + sizeof(uint32_t);
+   uint32_t aligned_addr = (addr + alignment - 1) & ~(alignment - 1);
+
+   *((uint32_t*)(aligned_addr - sizeof(uint32_t))) = physical_addr;
+
+   return (void*)aligned_addr;
+}
+
+//------------------------------------------------------------------------------
+void free_aligned_physical_memory(void* aligned_addr)
+//------------------------------------------------------------------------------
+{
+   if (!aligned_addr) return;
+
+   void* physical_addr = (void*)((uint32_t)aligned_addr - sizeof(uint32_t));
+   free_physical_memory(physical_addr);
+}
+
+//------------------------------------------------------------------------------
+uint32_t get_allocated_physical_size(void* addr)
+//------------------------------------------------------------------------------
+{
+   if (!addr) return 0;
+
+   heap_block_t *block = (heap_block_t*)((uint32_t)addr - sizeof(heap_block_t));
+   return block->size;
+}
+
+
