@@ -7,6 +7,8 @@
 #include "timer.h"
 #include "paging.h"
 #include "mm.h"
+#include "task.h"
+#include "schedule.h"
 
 
 //------------------------------------------------------------------------------
@@ -32,7 +34,7 @@ static void test_allocate_physical_memory()
    free_physical_memory(mm0);
 }
 
-/*static*/ void test_malloc_virtual_memory()
+static void test_malloc_virtual_memory()
 {
    puts("Virtual mm allocation test: ");
    void* mm0 = malloc_virtual_memory(9192);
@@ -53,6 +55,23 @@ static void test_allocate_physical_memory()
    free_virtual_memory(mm0);
 }
 
+static void test_task_1() {
+   while(1) {
+       puts("Task 1 running...\n");
+       for(int i = 0; i < 100000; i++) {
+           asm volatile("nop");
+       }
+   }
+}
+
+static void test_task_2() {
+   while(1) {
+       puts("Task 2 running...\n");
+       for(int i = 0; i < 100000; i++) {
+           asm volatile("nop");
+       }
+   }
+}
 
 //------------------------------------------------------------------------------
 // Specify the section name.
@@ -79,10 +98,16 @@ __attribute__((section(".text.c_start"))) void cstart(void)
    puts("Virtual address initialized.\n");
    test_malloc_virtual_memory();
 
+   (void)create_task((void*)test_task_1, "test_task_1", TASK_PRIORITY_NORMAL);
+   (void)create_task((void*)test_task_2, "test_task_2", TASK_PRIORITY_NORMAL);
+
    asm volatile ("sti");
 
    init_keyboard();
    puts("Keyboard input is now enabled.\n");
+
+   // puts("Start task scheduler...\n");
+   // schedule_task();
 
    // TODO: fix the restart issue after remove mapping physical address 0-4M to virtual address 0-4M
    // remove_first_page_table_mapping();

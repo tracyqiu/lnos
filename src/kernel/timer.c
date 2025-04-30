@@ -3,6 +3,7 @@
 #include "x86.h"
 #include "print.h"
 #include "stdlib.h"
+#include "schedule.h"
 
 
 static uint32_t tick = 0;
@@ -20,6 +21,11 @@ static void timer_handler(registers_t* regs)
    puts(itoa(tick, buf, 10));
    puts("\n");
    */
+
+   if (tick % 10 == 0)
+   {
+      // schedule_task();
+   }
 }
 
 //------------------------------------------------------------------------------

@@ -50,7 +50,7 @@ global isr31
 
 
 ;
-; We don't get information about which interrupt was caller when the handler is run, 
+; We don't get information about which interrupt was caller when the handler is run,
 ; so we will need to have a different handler for every interrupt.
 ;
 
@@ -261,7 +261,7 @@ global irq15
 
 ;
 ; IRQ handlers
-; IRQ0-IRQ7 mapping to interrupt number 32-39 master PIC, 
+; IRQ0-IRQ7 mapping to interrupt number 32-39 master PIC,
 ; IRQ8-IRQ15 mapping to interrupt number 40-47 slaver PIC
 ;
 
@@ -326,7 +326,7 @@ irq9:
    jmp general_irq_handler
 
 ; 42: Reserved, usually used for network cards or SCSI controllers
-irq10: 
+irq10:
    push byte 10
    push byte 42
    jmp general_irq_handler
@@ -364,25 +364,25 @@ irq15:
 
 
 
-; Some interrupts push an error code onto the stack but others don't, 
+; Some interrupts push an error code onto the stack but others don't,
 ; so we will push a dummy error code for those which don't, so that we have a consistent stack for all of them.
 
 general_exception_handler:
    ; 1. Save CPU state
-   pusha          ; pushes edi,esi,ebp,esp,ebx,edx,ecx,eax
-   mov ax, ds      ; lower 16-bits of eax = ds.
-   push eax        ; save the data segment descriptor
-   mov ax, 0x10     ; kernel data segment descriptor
+   pushad            ; pushes EAX、ECX、EDX、EBX、ESP、EBP、ESI、EDI onto the stack in sequence
+   mov ax, ds        ; lower 16-bits of eax = ds.
+   push eax          ; save the data segment descriptor
+   mov ax, 0x10      ; kernel data segment descriptor
    mov ds, ax
    mov es, ax
    mov fs, ax
    mov gs, ax
 
    ; 2. Call C handler
-   push esp        ; esp == handler_ptr* pointer
+   push esp          ; esp == handler_ptr* pointer
    cli
    call isr_handler
-   pop eax         ; clear pointer afterwards
+   pop eax           ; clear pointer afterwards
 
    ; 3. Restore state
    pop eax
@@ -390,16 +390,16 @@ general_exception_handler:
    mov es, ax
    mov fs, ax
    mov gs, ax
-   popa
-   add esp, 8      ; cleans up the pushed error code and pushed ISR number
+   popad
+   add esp, 8        ; cleans up the pushed error code and pushed ISR number
    sti
-   iret           ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
+   iret              ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
 
 
 
 general_irq_handler:
    ; 1. Save CPU state
-   pusha
+   pushad
    mov ax, ds
    push eax
    mov ax, 0x10
@@ -411,7 +411,7 @@ general_irq_handler:
    ; 2. Call C handler
    push esp
    cli
-   call irq_handler      ; different than the ISR code
+   call irq_handler   ; different than the ISR code
    pop ebx            ; different than the ISR code
 
    ; 3. Restore state
@@ -420,7 +420,7 @@ general_irq_handler:
    mov es, bx
    mov fs, bx
    mov gs, bx
-   popa
+   popad
    add esp, 8
    sti
    iret

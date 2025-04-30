@@ -1,7 +1,7 @@
 #include "string.h"
 
 //------------------------------------------------------------------------------
-char * strcpy ( char * destination, const char * source )
+char* strcpy(char* destination, const char* source)
 //------------------------------------------------------------------------------
 {
    char* tmp = destination;
@@ -9,9 +9,17 @@ char * strcpy ( char * destination, const char * source )
    return tmp;
 }
 
+//------------------------------------------------------------------------------
+char* strncpy(char* destination, const char* source, uint32_t num)
+//------------------------------------------------------------------------------
+{
+   char* tmp = destination;
+   while (num--) *destination++ = *source++;
+   return tmp;
+}
 
 //------------------------------------------------------------------------------
-char * strcat ( char * destination, const char * source )
+char* strcat(char* destination, const char* source)
 //------------------------------------------------------------------------------
 {
    char* tmp = destination;
@@ -22,7 +30,7 @@ char * strcat ( char * destination, const char * source )
 }
 
 //------------------------------------------------------------------------------
-int strcmp ( const char * str1, const char * str2 )
+int strcmp(const char* str1, const char* str2)
 //------------------------------------------------------------------------------
 {
    while (*str1 && *str2) {
@@ -31,4 +39,23 @@ int strcmp ( const char * str1, const char * str2 )
       str2++;
    }
    return (*str1 - *str2);
+}
+
+//------------------------------------------------------------------------------
+void* memset(void* ptr, uint8_t value, uint32_t num)
+//------------------------------------------------------------------------------
+{
+   uint8_t* tmp = ptr;
+   while (num--) *tmp++ = value;
+   return ptr;
+}
+
+//------------------------------------------------------------------------------
+void* memcpy(void* destination, const void* source, uint32_t num)
+//------------------------------------------------------------------------------
+{
+   uint8_t* tmp = (uint8_t*)destination;
+   uint8_t* src = (uint8_t*)source;
+   while (num--) *tmp++ = *src++;
+   return destination;
 }

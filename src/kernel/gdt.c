@@ -18,8 +18,7 @@ typedef struct {
 } __attribute__((packed)) gdt_descriptor_t;
 
 
-typedef enum
-{
+typedef enum {
    GDT_ACCESS_CODE_READABLE_EXECUTABLE    = 0x0A,   // type = 1010
    GDT_ACCESS_DATA_READABLE_WRITEABLE     = 0x02,   // type = 0010
 
@@ -34,8 +33,7 @@ typedef enum
    GDT_ACCESS_PRESENT                     = 0x80,
 } GDT_ACCESS;
 
-typedef enum
-{
+typedef enum {
    GDT_FLAG_64BIT                         = 0x20,
    GDT_FLAG_32BIT                         = 0x40,
    GDT_FLAG_16BIT                         = 0x00,
