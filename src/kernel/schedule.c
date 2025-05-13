@@ -42,9 +42,11 @@ static void switch_to_task(task_t* task)
    if (!task || task == current_task) return;
 
    task_t* old_task = current_task;
-   old_task->state = TASK_STATE_READY;
+   if (old_task) {
+      old_task->state = TASK_STATE_READY;
+   }
 
-   task->state = TASK_STATE_READY;
+   task->state = TASK_STATE_RUNNING;
    current_task = task;
 
    if (old_task) {

@@ -19,7 +19,7 @@ switch_task_context:
    mov [eax + 4], esi
    mov [eax + 8], ebp
    lea ecx, [ebp + 8]      ; esp
-   mov [eax + 12], esp
+   mov [eax + 12], ecx
    mov [eax + 16], ebx
    mov [eax + 20], edx
    mov [eax + 24], ecx
@@ -53,8 +53,8 @@ switch_task_context:
 
    ; switch to new_context
 
-   mov ecx, [edx + 48]
-   mov ss, ecx
+   ;mov ecx, [edx + 48]
+   ;mov ss, ecx
 
    mov ecx, [edx + 52]
    mov ds, ecx
@@ -68,15 +68,31 @@ switch_task_context:
    mov edi, [edx + 0]
    mov esi, [edx + 4]
    mov ebp, [edx + 8]
-   mov ebx, [eax + 16]
-   mov ecx, [eax + 24]
-   mov eax, [eax + 28]
+   mov ebx, [edx + 16]
+   mov ecx, [edx + 24]
+   mov eax, [edx + 28]
+
+   push dword [edx + 40]   ; EFLAGS
+   popfd
 
    mov esp, [edx + 12]
 
-   push dword [eax + 40]   ; EFLAGS
-   popfd
-
    push dword [edx + 32]   ; eip
-
    ret
+
+
+   ; test for check eip
+%if 0
+   mov ecx, [edx + 32]
+   test ecx, ecx
+   jz .error
+
+   mov esp, [edx + 12]
+
+   jmp ecx
+
+.error
+   mov eax, 0xEFFFFFFF
+   hlt
+   
+%endif

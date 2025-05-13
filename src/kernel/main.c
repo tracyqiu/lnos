@@ -56,20 +56,26 @@ static void test_malloc_virtual_memory()
 }
 
 static void test_task_1() {
+   int32_t count = 0;
    while(1) {
-       puts("Task 1 running...\n");
-       for(int i = 0; i < 100000; i++) {
-           asm volatile("nop");
-       }
+      if ((++count) % 10 == 0) {
+         puts("Task 1 running...\n");
+      }
+      for(int32_t i = 0; i < 100000; i++) {
+         asm volatile("nop");
+      }
    }
 }
 
 static void test_task_2() {
+   int32_t count = 0;
    while(1) {
-       puts("Task 2 running...\n");
-       for(int i = 0; i < 100000; i++) {
-           asm volatile("nop");
-       }
+      if ((++count) % 1000 == 0) {
+         puts("Task 2 running...\n");
+      }
+      for(int32_t i = 0; i < 100000; i++) {
+         asm volatile("nop");
+      }
    }
 }
 
@@ -106,8 +112,8 @@ __attribute__((section(".text.c_start"))) void cstart(void)
    init_keyboard();
    puts("Keyboard input is now enabled.\n");
 
-   // puts("Start task scheduler...\n");
-   // schedule_task();
+   puts("Start task scheduler...\n");
+   schedule_task();
 
    // TODO: fix the restart issue after remove mapping physical address 0-4M to virtual address 0-4M
    // remove_first_page_table_mapping();

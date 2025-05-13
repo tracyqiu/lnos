@@ -24,7 +24,7 @@ static void timer_handler(registers_t* regs)
 
    if (tick % 10 == 0)
    {
-      // schedule_task();
+      schedule_task();
    }
 }
 

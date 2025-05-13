@@ -71,7 +71,7 @@ void irq_handler(registers_t *regs)
 
    // send EOI(end of interrupt) signal
    if (regs->int_no >= 40) {
-      x86_outb(0xA0, 0x20);  // slaver
+      x86_outb(0xA0, 0x20);   // slaver
    }
    x86_outb(0x20, 0x20);      // master
 }

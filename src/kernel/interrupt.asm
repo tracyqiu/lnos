@@ -393,7 +393,7 @@ general_exception_handler:
    popad
    add esp, 8        ; cleans up the pushed error code and pushed ISR number
    sti
-   iret              ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
+   iret              ; pops 5 things at once: EIP, CS, EFLAGS, ESP, and SS in sequence
 
 
 

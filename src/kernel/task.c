@@ -38,7 +38,12 @@ task_t* create_task(task_func_t func, const char* name, const task_priority_t pr
    memset(&task->context, 0, sizeof(tss_t));
    uint32_t* stack_top = (uint32_t*)((uint8_t*)task->stack_addr + task->stack_size);
 
-   // init register
+   /** init register
+   * bottom of the stack
+   * ...
+   * top of the stack
+   */
+   // keep consistent with the sequence of command iret
    *(--stack_top) = 0x10;                 // SS
    --stack_top;
    *stack_top = (uint32_t)stack_top;      // ESP
@@ -46,6 +51,7 @@ task_t* create_task(task_func_t func, const char* name, const task_priority_t pr
    *(--stack_top) = 0x08;                 // CS
    *(--stack_top) = (uint32_t)func;       // EIP
 
+   // keep consistent with the sequence of command popad
    *(--stack_top) = 0;                    // EAX
    *(--stack_top) = 0;                    // ECX
    *(--stack_top) = 0;                    // EDX
@@ -63,6 +69,8 @@ task_t* create_task(task_func_t func, const char* name, const task_priority_t pr
    task->context.fs = 0x10;
    task->context.gs = 0x10;
    task->context.eflags = 0x202;
+
+   task->context.eip = (uint32_t)func;
 
    if (!task_list) {
       task_list = task;
