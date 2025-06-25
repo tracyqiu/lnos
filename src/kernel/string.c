@@ -59,3 +59,27 @@ void* memcpy(void* destination, const void* source, uint32_t num)
    while (num--) *tmp++ = *src++;
    return destination;
 }
+
+//------------------------------------------------------------------------------
+void *memmove(void *dest, const void *src, uint32_t n)
+//------------------------------------------------------------------------------
+{
+    uint8_t* d = (uint8_t*)dest;
+    const uint8_t* s = (const uint8_t*)src;
+
+    if (d == s || n == 0) {
+        return dest;
+    }
+
+    if (d < s) {
+        for (uint32_t i = 0; i < n; i++) {
+            d[i] = s[i];
+        }
+    } else {
+        for (uint32_t i = n; i > 0; i--) {
+            d[i-1] = s[i-1];
+        }
+    }
+
+    return dest;
+}

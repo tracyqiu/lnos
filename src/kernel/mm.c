@@ -2,6 +2,7 @@
 #include "memory.h"
 #include "paging.h"
 #include "ktypes.h"
+#include "string.h"
 
 #define VIRTUAL_HEAP_START 0xD0000000
 #define VIRTUAL_HEAP_SIZE  0x10000000

@@ -1,11 +1,41 @@
 #include "schedule.h"
+#include "print.h"
+#include "stdlib.h"
+#include "ktypes.h"
 
 
-extern void switch_task_context(tss_t* old_context, tss_t* new_context);
+extern void __attribute__((cdecl)) switch_task_context(tss_t* old_context, tss_t* new_context);
 
 extern task_t* task_list;
 
+extern task_t* task_lists[TASK_ENTRIES];
+
 static task_t* current_task = NULL;
+/*
+//------------------------------------------------------------------------------
+static task_t* find_ready_task()
+//------------------------------------------------------------------------------
+{
+   if (current_task)
+   {
+      for (uint32_t i = 0; i < TASK_ENTRIES; ++i) {
+         if (task_lists[i] == NULL) break;
+         if (current_task == task_lists[i] && i < TASK_ENTRIES-1 && task_lists[i+1] != NULL && task_lists[i+1]->state == TASK_STATE_READY) {
+            return task_lists[i+1];
+         }
+      }
+   }
+
+   for (uint32_t i = 0; i < TASK_ENTRIES; ++i) {
+      if (task_lists[i] == NULL) break;
+      if (task_lists[i]->state == TASK_STATE_READY) {
+         return task_lists[i];
+      }
+   }
+
+   return NULL;
+}
+*/
 
 
 //------------------------------------------------------------------------------
@@ -35,6 +65,7 @@ static task_t* find_ready_task()
    return NULL;
 }
 
+
 //------------------------------------------------------------------------------
 static void switch_to_task(task_t* task)
 //------------------------------------------------------------------------------
@@ -61,11 +92,19 @@ static void switch_to_task(task_t* task)
    }
 }
 
+
 //------------------------------------------------------------------------------
 void schedule_task()
 //------------------------------------------------------------------------------
 {
    task_t* next = find_ready_task();
+
+   #if DEF_DEBUG_TRACE
+   puts("find ready task: ");
+   char buf[32];
+   puts(itoa((int32_t)next, buf, 16));
+   puts("\n");
+   #endif
 
    if (next) {
       switch_to_task(next);

@@ -7,6 +7,30 @@
 
 static uint32_t next_pid = 1;
 task_t* task_list = NULL;
+task_t* task_lists[TASK_ENTRIES] = {0}; // temporay solution to do some test
+
+
+//------------------------------------------------------------------------------
+static task_t* add_task(task_t* task)
+//------------------------------------------------------------------------------
+{
+   if (!task_list) {
+      task_list = task;
+   } else {
+      task_t* p = task_list;
+      while (p->next != NULL) {
+         p = p->next;
+         char buf[32];
+         puts("p addr: ");
+         puts(itoa((uint32_t)p, buf, 16));
+         puts("\n");
+      }
+      p->next = task;
+      task->next = NULL;
+   }
+
+   return task_list;
+}
 
 //------------------------------------------------------------------------------
 task_t* create_task(task_func_t func, const char* name, const task_priority_t priority)
@@ -18,6 +42,7 @@ task_t* create_task(task_func_t func, const char* name, const task_priority_t pr
       return NULL;
    }
 
+   memset(task, 0, sizeof(task_t));
    task->pid = next_pid++;
    strncpy(task->name, name, 31);
    task->name[31] = '\0';
@@ -72,20 +97,17 @@ task_t* create_task(task_func_t func, const char* name, const task_priority_t pr
 
    task->context.eip = (uint32_t)func;
 
-   if (!task_list) {
-      task_list = task;
-   } else {
-      task_t* p = task_list;
-      while (p->next) p = p->next;
-      p->next = task;
-   }
-
    char buf[32];
    puts("Created task: ");
    puts(task->name);
    puts(" (PID: ");
    puts(itoa(task->pid, buf, 10));
-   puts(")\n");
+   puts("), address: ");
+   puts(itoa((uint32_t)task, buf, 16));
+   puts("\n");
+
+   add_task(task);
+   task_lists[task->pid - 1] = task;
 
    task->state = TASK_STATE_READY;
    return task;

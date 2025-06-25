@@ -1,5 +1,5 @@
 ;;;
-;;; extern void switch_task_context(tss_t* old_context, tss_t* new_context);
+;;; void __attribute__((cdecl)) switch_task_context(tss_t* old_context, tss_t* new_context);
 ;;;
 
 bits 32
@@ -94,5 +94,5 @@ switch_task_context:
 .error
    mov eax, 0xEFFFFFFF
    hlt
-   
+
 %endif

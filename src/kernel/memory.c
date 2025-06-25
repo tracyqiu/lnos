@@ -2,10 +2,10 @@
 #include "print.h"
 #include "string.h"
 #include "stdlib.h"
+#include "ktypes.h"
 
 
 #define LOW_MEM   0x100000
-#define PAGE_SIZE 4096
 
 // Address Range Descriptor Structure
 typedef struct {
@@ -17,7 +17,7 @@ typedef struct {
 
 
 typedef struct {
-   uint32_t lower_mm_size;           // lower memory size(KB)
+   uint32_t lower_mm_size;          // lower memory size(KB)
    uint32_t high_mm_size;           // higher memory size(KB)
    uint32_t map_size;
    addr_range_entry_t *map_addr;
@@ -40,28 +40,78 @@ static memory_info_t memory_info = {
 };
 
 static uint32_t* page_bitmap;
-static uint32_t page_count;
-
+static uint32_t page_count;         // the total page count, include all memory
+static uint32_t max_memory_addr;
 static uint32_t heap_start;
+static uint32_t heap_start_page_idx;
 
+//------------------------------------------------------------------------------
+static void debug_raw_memory_data()
+//------------------------------------------------------------------------------
+{
+   #if DEF_DEBUG_TRACE
+   puts("=== START RAW MEMORY DEBUG ===\n");
+
+   uint32_t* raw_data = (uint32_t*)0x8000;
+   uint32_t len = *((uint32_t*)0x7004);
+
+   puts("Memory map size: ");
+   char buf[16];
+   puts(itoa(len, buf, 10));
+   puts(" bytes\n");
+
+   uint32_t max_entries = len / 4;
+   puts("Raw data (hex):\n");
+   // print 4 bytes each time
+   for (uint32_t i = 0; (i < max_entries) && ((i * 4) < len); i++) {
+      puts("Offset ");
+      puts(itoa(i * 4, buf, 10));
+      puts(": ");
+      puts(itoa(raw_data[i], buf, 16));
+      puts("\n");
+   }
+
+   puts("=== END RAW MEMORY DEBUG ===\n");
+   #endif
+}
 
 //------------------------------------------------------------------------------
 static void load_memory_info()
 //------------------------------------------------------------------------------
 {
+   debug_raw_memory_data();
+
    memory_info.map_addr = (addr_range_entry_t*)(*((uint32_t*)0x7000));
    memory_info.map_size = *((uint32_t*)0x7004);
 
    addr_range_entry_t *entry = memory_info.map_addr;
-   for (uint32_t i = 0; i < memory_info.map_size / sizeof(addr_range_entry_t); i++) {
+   uint32_t len = memory_info.map_size / sizeof(addr_range_entry_t);
+   for (uint32_t i = 0; i < len; i++) {
+      uint64_t end_addr = entry[i].base_addr + entry[i].length;
+      if (end_addr > max_memory_addr) {
+         max_memory_addr = (uint32_t)end_addr;
+      }
+
+      if (entry[i].length > 0) {
+         char buf[16];
+         puts("memory addr: ");
+         puts(itoa(entry[i].base_addr, buf, 16));
+         puts(" length: ");
+         puts(itoa(entry[i].length >> 10, buf, 10));
+         puts("KB");
+      }
+
       if (entry[i].type == MEMORY_AVAILABLE) {
          if (entry[i].base_addr < LOW_MEM) {
-            memory_info.lower_mm_size = (entry[i].base_addr + entry[i].length) >> 12;  // 1 KB = 1024 Bytes
+            memory_info.lower_mm_size = (entry[i].base_addr + entry[i].length) >> 10;  // 1 KB = 1024 Bytes
          }
          else {
-            memory_info.high_mm_size += entry[i].length >> 12;
+            memory_info.high_mm_size += entry[i].length >> 10;
+
+            if (entry[i].length > 0) puts(" available");
          }
       }
+      if (entry[i].length > 0) puts(" \n");
    }
 }
 
@@ -69,6 +119,7 @@ static void load_memory_info()
 static void set_page_bitmap_used(uint32_t *bitmap, uint32_t bit)
 //------------------------------------------------------------------------------
 {
+   if (bit >= page_count) return;
    bitmap[bit / 32] |= (1 << (bit % 32));
 }
 
@@ -76,6 +127,7 @@ static void set_page_bitmap_used(uint32_t *bitmap, uint32_t bit)
 static void clear_page_bitmap(uint32_t *bitmap, uint32_t bit)
 //------------------------------------------------------------------------------
 {
+   if (bit >= page_count) return;
    bitmap[bit / 32] &= ~(1 << (bit % 32));
 }
 
@@ -83,7 +135,27 @@ static void clear_page_bitmap(uint32_t *bitmap, uint32_t bit)
 static uint32_t is_free_page(uint32_t *bitmap, uint32_t bit)
 //------------------------------------------------------------------------------
 {
-   return ~(bitmap[bit / 32] & (1 << (bit % 32)));
+   if (bit >= page_count) return 0;
+   return !(bitmap[bit / 32] & (1 << (bit % 32)));
+}
+
+//------------------------------------------------------------------------------
+static uint32_t is_page_available(uint32_t page_index)
+//------------------------------------------------------------------------------
+{
+   uint32_t addr = page_index * PAGE_SIZE;
+   addr_range_entry_t* entry = memory_info.map_addr;
+   uint32_t len = memory_info.map_size / sizeof(addr_range_entry_t);
+
+   for (uint32_t i = 0; i < len; i++) {
+      if (entry[i].type == MEMORY_AVAILABLE
+         && addr >= entry[i].base_addr
+         && addr < (entry[i].base_addr + entry[i].length)) {
+         return 1;
+      }
+   }
+
+   return 0;
 }
 
 //------------------------------------------------------------------------------
@@ -93,21 +165,46 @@ void init_memory()
    load_memory_info();
    // puts("Loaded memory infor...\n");
 
-   uint32_t available_mm_size = memory_info.high_mm_size * 1024;
-   page_count = available_mm_size / PAGE_SIZE;
-
-   // calculate how many bytes are needed to represent if these page is used or not, 1byte = 8bit
-   uint32_t bitmap_bytes = page_count / 8;
-   if (page_count % 8) bitmap_bytes++;
+   page_count = (max_memory_addr + PAGE_SIZE - 1) / PAGE_SIZE;
+   // calculate how many bytes are needed to represent if these page is used or not and round it up, 1byte = 8bit
+   uint32_t bitmap_bytes = (page_count + 7) / 8;
    // calculate the number of uint32_t required for the bitmap and round it up to the nearest integer
    uint32_t bitmap_uint32_count = (bitmap_bytes + 3) / 4;
 
    // put the page bitmap address behind idt, idt_addr_end is 0x102800
    page_bitmap = (uint32_t*)0x103000;
-   // clear bitmap
+   // set all memory as used
    for (uint32_t i = 0; i < bitmap_uint32_count; i++) {
-      page_bitmap[i] = 0;
+      page_bitmap[i] = 0xFFFFFFFF;
    }
+
+   // set memory of available as free
+   addr_range_entry_t* entry = memory_info.map_addr;
+   uint32_t len = memory_info.map_size / sizeof(addr_range_entry_t);
+   for (uint32_t i = 0; i < len; i++) {
+      if (entry[i].type == MEMORY_AVAILABLE) {
+         uint32_t start_page_idx = entry[i].base_addr / PAGE_SIZE;
+         uint32_t end_page_idx = (entry[i].base_addr + entry[i].length) / PAGE_SIZE;
+
+         for (uint32_t j = start_page_idx; j < end_page_idx; j++) {
+            clear_page_bitmap(page_bitmap, j);
+         }
+      }
+   }
+
+   // // set the memory of unavailable as used
+   // addr_range_entry_t *entry = memory_info.map_addr;
+   // for (uint32_t i = 0; i < memory_info.map_size / sizeof(addr_range_entry_t); i++) {
+   //    if (entry[i].type != MEMORY_AVAILABLE) {
+   //       uint64_t start_offset = entry[i].base_addr / PAGE_SIZE;
+   //       // round it up to the nearest integer as a safety guarantee
+   //       uint64_t end_offset = (entry[i].base_addr + entry[i].length + (PAGE_SIZE-1)) / PAGE_SIZE;
+
+   //       for (uint64_t j = start_offset; j < end_offset && j < page_count; j++) {
+   //          set_page_bitmap_used(page_bitmap, (uint32_t)j);
+   //       }
+   //    }
+   // }
 
    // set the memory of kernel and page_bitmap as used
    uint32_t kernel_mm_end = (uint32_t)page_bitmap + bitmap_bytes;
@@ -116,32 +213,26 @@ void init_memory()
       set_page_bitmap_used(page_bitmap, i);
    }
 
-   // set the memory of unavailable as used
-   addr_range_entry_t *entry = memory_info.map_addr;
-   for (uint32_t i = 0; i < memory_info.map_size / sizeof(addr_range_entry_t); i++) {
-      if (entry[i].type != MEMORY_AVAILABLE) {
-         uint64_t start_offset = entry[i].base_addr / PAGE_SIZE;
-         // round it up to the nearest integer as a safety guarantee
-         uint64_t end_offset = (entry[i].base_addr + entry[i].length + (PAGE_SIZE-1)) / PAGE_SIZE;
+   heap_start = kernel_page_count * PAGE_SIZE;
+   heap_start_page_idx = kernel_page_count;
 
-         for (uint64_t j = start_offset; j < end_offset && j < page_count; j++) {
-            set_page_bitmap_used(page_bitmap, (uint32_t)j);
-         }
-      }
+   uint32_t available_pages = 0;
+   for (uint32_t i = 0; i < page_count; i++) {
+      if (is_free_page(page_bitmap, i)) available_pages++;
    }
-
-   heap_start = kernel_mm_end;
 
    puts("Available memory: ");
    char buf[16];
-   puts(itoa(available_mm_size / 1024, buf, 10));
+   puts(itoa((available_pages * PAGE_SIZE) / 1024, buf, 10));
    puts(" KB, total page count: ");
    puts(itoa(page_count, buf, 10));
+   puts(", kernel pages: ");
+   puts(itoa(kernel_page_count, buf, 10));
+   puts(", available pages: ");
+   puts(itoa(available_pages, buf, 10));
+   puts(", bitmap uint32 count: ");
+   puts(itoa(bitmap_uint32_count, buf, 10));
    puts("\n");
-   // char str[64];
-   // strcat(str, itoa(page_count, buf, 10));
-   // strcat(str, ".\n");
-   // puts(str);
 }
 
 //------------------------------------------------------------------------------
@@ -149,7 +240,7 @@ void* get_free_page()
 //------------------------------------------------------------------------------
 {
    for (uint32_t i = 0; i < page_count; i++) {
-      if (is_free_page(page_bitmap, i)) {
+      if (is_free_page(page_bitmap, i)) { //  && is_page_available(i)
          set_page_bitmap_used(page_bitmap, i);
          return (void*)(i * PAGE_SIZE);
       }
@@ -162,7 +253,9 @@ void free_page(void* page_addr)
 //------------------------------------------------------------------------------
 {
    uint32_t page_offset = (uint32_t)page_addr / PAGE_SIZE;
-   clear_page_bitmap(page_bitmap, page_offset);
+   if (page_offset < page_count && is_page_available(page_offset)) {
+      clear_page_bitmap(page_bitmap, page_offset);
+   }
 }
 
 
@@ -198,7 +291,7 @@ static heap_block_t* kmalloc_on_page(uint32_t size)
    uint32_t consecutive_free_page = 0;
 
    // try to find consecutive free pages to fit the needed size
-   for (uint32_t i = 0; i < page_count; i++) {
+   for (uint32_t i = heap_start_page_idx; i < page_count; i++) {
       if (is_free_page(page_bitmap, i)) {
          if (0 == page_start) page_start = i;
          consecutive_free_page++;
@@ -215,11 +308,16 @@ static heap_block_t* kmalloc_on_page(uint32_t size)
             new_block->next = NULL;
 
             // add new_block to list
-            heap_block_t* current = heap_start_block_list;
-            while (current->next) {
-               current = current->next;
+            if (heap_start_block_list != new_block) {
+               heap_block_t* current = heap_start_block_list;
+               while (current->next) {
+                  current = current->next;
+               }
+               current->next = new_block;
             }
-            current->next = new_block;
+            else {
+               heap_start_block_list = new_block;
+            }
 
             return new_block;
          }

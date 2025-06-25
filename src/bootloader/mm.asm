@@ -27,6 +27,7 @@ query_memory:
    add di, 24                    ; next range of physical memory
    mov eax, 0xE820
    mov ecx, 24
+   mov edx, SIGNATURE_SMAP       ; set signature each time
    int 0x15
    jc .done
 
@@ -35,7 +36,10 @@ query_memory:
 
 .done:
    mov dword [0x7000], 0x8000    ; save the address of memory mapping info to 0x7000
-   mov dword [0x7004], edi       ; save size to 0x7004
+   ;mov dword [0x7004], edi       ; save size to 0x7004  >>  error due to edi point to next entry, the data size should be (edi-0x8000)
+   mov eax, edi
+   sub eax, 0x8000
+   mov dword [0x7004], eax
 
    call find_highest_address
 
@@ -122,3 +126,4 @@ msg_mm_size:         db ', mm size: 0x', 0
 msg_end:             db 13, 10, 0
 msg_mm_highest_addr: db 'memory highest_addr: 0x', 0
 msg_mm_failed:       db 'Ops, memory detect error :(', 13, 10, 0
+
