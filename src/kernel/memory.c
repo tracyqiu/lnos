@@ -7,6 +7,7 @@
 
 #define LOW_MEM   0x100000
 
+
 // Address Range Descriptor Structure
 typedef struct {
    uint64_t base_addr;
@@ -39,11 +40,11 @@ static memory_info_t memory_info = {
    .map_addr = (addr_range_entry_t*)0x8000
 };
 
-static uint32_t* page_bitmap;
+/*static*/ uint32_t* page_bitmap;
 static uint32_t page_count;         // the total page count, include all memory
 static uint32_t max_memory_addr;
 static uint32_t heap_start;
-static uint32_t heap_start_page_idx;
+
 
 //------------------------------------------------------------------------------
 static void debug_raw_memory_data()
@@ -116,7 +117,7 @@ static void load_memory_info()
 }
 
 //------------------------------------------------------------------------------
-static void set_page_bitmap_used(uint32_t *bitmap, uint32_t bit)
+/*static*/ void set_page_bitmap_used(uint32_t *bitmap, uint32_t bit)
 //------------------------------------------------------------------------------
 {
    if (bit >= page_count) return;
@@ -172,7 +173,7 @@ void init_memory()
    uint32_t bitmap_uint32_count = (bitmap_bytes + 3) / 4;
 
    // put the page bitmap address behind idt, idt_addr_end is 0x102800
-   page_bitmap = (uint32_t*)0x103000;
+   page_bitmap = (uint32_t*)PAGE_BITMAP_ADDR;
    // set all memory as used
    for (uint32_t i = 0; i < bitmap_uint32_count; i++) {
       page_bitmap[i] = 0xFFFFFFFF;
@@ -209,12 +210,16 @@ void init_memory()
    // set the memory of kernel and page_bitmap as used
    uint32_t kernel_mm_end = (uint32_t)page_bitmap + bitmap_bytes;
    uint32_t kernel_page_count = (kernel_mm_end / PAGE_SIZE) + 1;
+
+   if (kernel_page_count * PAGE_SIZE < HEAP_START_ADDR) {
+      kernel_page_count = HEAP_START_ADDR / PAGE_SIZE;
+   }
+
    for (uint32_t i = 0; i < kernel_page_count; i++) {
       set_page_bitmap_used(page_bitmap, i);
    }
 
    heap_start = kernel_page_count * PAGE_SIZE;
-   heap_start_page_idx = kernel_page_count;
 
    uint32_t available_pages = 0;
    for (uint32_t i = 0; i < page_count; i++) {
@@ -265,6 +270,7 @@ void free_page(void* page_addr)
 typedef struct heap_block {
    uint32_t size;
    uint8_t is_free;
+   uint32_t aligned_size;
    struct heap_block *next;
 } heap_block_t;
 
@@ -281,7 +287,7 @@ static void init_heap()
 }
 
 //------------------------------------------------------------------------------
-static heap_block_t* kmalloc_on_page(uint32_t size)
+static heap_block_t* kmalloc_on_page(uint32_t size, uint32_t page_idx)
 //------------------------------------------------------------------------------
 {
    // + (PAGE_SIZE - 1) : if less than one page then counted as one page.
@@ -291,7 +297,7 @@ static heap_block_t* kmalloc_on_page(uint32_t size)
    uint32_t consecutive_free_page = 0;
 
    // try to find consecutive free pages to fit the needed size
-   for (uint32_t i = heap_start_page_idx; i < page_count; i++) {
+   for (uint32_t i = page_idx; i < page_count; i++) {
       if (is_free_page(page_bitmap, i)) {
          if (0 == page_start) page_start = i;
          consecutive_free_page++;
@@ -315,9 +321,9 @@ static heap_block_t* kmalloc_on_page(uint32_t size)
                }
                current->next = new_block;
             }
-            else {
-               heap_start_block_list = new_block;
-            }
+            // else {
+            //    heap_start_block_list = new_block;
+            // }
 
             return new_block;
          }
@@ -332,7 +338,7 @@ static heap_block_t* kmalloc_on_page(uint32_t size)
 }
 
 //------------------------------------------------------------------------------
-void* malloc_physical_memory(uint32_t size)
+static void* kmalloc_physical_memory(uint32_t size, uint32_t aligned_size)
 //------------------------------------------------------------------------------
 {
    if (!heap_start_block_list) {
@@ -344,7 +350,7 @@ void* malloc_physical_memory(uint32_t size)
    uint32_t best_size = 0xFFFFFFFF;
 
    while (current) {
-      if (current->is_free && current->size >= size) {
+      if (current->is_free && (current->size - sizeof(heap_block_t)) >= size) {
          if (current->size < best_size) {
             best_size = current->size;
             best_fit = current;
@@ -354,7 +360,10 @@ void* malloc_physical_memory(uint32_t size)
    }
 
    if (!best_fit) {
-      best_fit = kmalloc_on_page(size);
+      heap_block_t *p = heap_start_block_list;
+      while (p && p->next) p = p->next;
+      uint32_t idx = ((uint32_t)p + PAGE_SIZE - 1) / PAGE_SIZE;
+      best_fit = kmalloc_on_page(size, idx);
    }
 
    // split memory of current founded page item
@@ -367,10 +376,18 @@ void* malloc_physical_memory(uint32_t size)
 
       best_fit->size = size;
       best_fit->next = new_block;
+      best_fit->aligned_size = aligned_size;
    }
 
    best_fit->is_free = 0;
    return (void*)((uint32_t)best_fit + sizeof(heap_block_t));
+}
+
+//------------------------------------------------------------------------------
+void* malloc_physical_memory(uint32_t size)
+//------------------------------------------------------------------------------
+{
+   return kmalloc_physical_memory(size, 0);
 }
 
 //------------------------------------------------------------------------------
@@ -402,15 +419,25 @@ void* malloc_aligned_physical_memory(uint32_t size, uint32_t alignment)
 {
    // align to multiples of 2
    if (alignment & (alignment - 1)) return NULL;
+   if (alignment == 0) alignment = sizeof(void*);
 
    // add sizeof(uint32_t) to store the physical_addr get from function malloc_physical_memory()
-   uint32_t size_needed = size + alignment + sizeof(uint32_t);
-   uint32_t physical_addr = (uint32_t)malloc_physical_memory(size_needed);
+   uint32_t size_needed = size + alignment - 1 + sizeof(uint32_t);
+   uint32_t physical_addr = (uint32_t)kmalloc_physical_memory(size_needed, size);
    if (!physical_addr) return NULL;
 
    // physical_addr will be placed before the aligned_addr, so + sizeof(uint32_t)
    uint32_t addr = physical_addr + sizeof(uint32_t);
    uint32_t aligned_addr = (addr + alignment - 1) & ~(alignment - 1);
+
+   // ensure that there's enough space to save physical_addr
+   if (aligned_addr - physical_addr < sizeof(uint32_t)) {
+      aligned_addr += alignment;
+   }
+
+   if (aligned_addr + size > physical_addr + size_needed) {
+      return NULL;
+   }
 
    *((uint32_t*)(aligned_addr - sizeof(uint32_t))) = physical_addr;
 
@@ -423,8 +450,18 @@ void free_aligned_physical_memory(void* aligned_addr)
 {
    if (!aligned_addr) return;
 
-   void* physical_addr = (void*)((uint32_t)aligned_addr - sizeof(uint32_t));
-   free_physical_memory(physical_addr);
+   uint32_t physical_addr = *((uint32_t*)((uint32_t)aligned_addr - sizeof(uint32_t)));
+   free_physical_memory((void*)physical_addr);
+}
+
+//------------------------------------------------------------------------------
+uint32_t get_aligned_allocated_physical_size(void* aligned_addr)
+//------------------------------------------------------------------------------
+{
+   if (!aligned_addr) return 0;
+
+   heap_block_t* physical_addr = (heap_block_t*)((uint32_t)aligned_addr - sizeof(uint32_t));
+   return physical_addr->aligned_size;
 }
 
 //------------------------------------------------------------------------------
@@ -433,8 +470,10 @@ uint32_t get_allocated_physical_size(void* addr)
 {
    if (!addr) return 0;
 
-   heap_block_t *block = (heap_block_t*)((uint32_t)addr - sizeof(heap_block_t));
+   heap_block_t* block = (heap_block_t*)((uint32_t)addr - sizeof(heap_block_t));
    return block->size;
 }
+
+
 
 

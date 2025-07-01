@@ -11,6 +11,8 @@ void unmap_physical_page(uint32_t virtual_addr);
 
 uint32_t get_physical_address(uint32_t virtual_addr);
 
+uint32_t get_physical_address_from_mapping(uint32_t virtual_addr);
+
 void remove_first_page_table_mapping();
 
 

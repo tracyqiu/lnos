@@ -13,7 +13,7 @@
 void* malloc_virtual_memory(uint32_t size)
 //------------------------------------------------------------------------------
 {
-   void* physical_addr = malloc_physical_memory(size);
+   void* physical_addr = malloc_aligned_physical_memory(size, PAGE_SIZE);
    if (!physical_addr) return NULL;
 
    static uint32_t next_virtual_addr = VIRTUAL_HEAP_START;
@@ -37,12 +37,14 @@ void free_virtual_memory(void* virtual_addr)
 //------------------------------------------------------------------------------
 {
    if (!virtual_addr) return;
+   
+   // function get_physical_address_from_mapping() is for testing and also works fine
+   // void* aligned_physical_addr = (void*)get_physical_address_from_mapping((uint32_t)virtual_addr);
+   void* aligned_physical_addr = (void*)get_physical_address((uint32_t)virtual_addr);
+   if (!aligned_physical_addr) return;
 
-   void* physical_addr = (void*)get_physical_address((uint32_t)virtual_addr);
-   if (!physical_addr) return;
-
-   uint32_t size = get_allocated_physical_size(physical_addr);
-   free_physical_memory(physical_addr);
+   uint32_t size = get_aligned_allocated_physical_size(aligned_physical_addr);
+   free_aligned_physical_memory(aligned_physical_addr);
 
    for (uint32_t i = 0; i < size; i += PAGE_SIZE) {
       uint32_t vir_addr = (uint32_t)virtual_addr + i;

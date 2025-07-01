@@ -1,5 +1,5 @@
-#ifndef TASK_h
-#define TASK_h
+#ifndef TASK_H
+#define TASK_H
 
 #include "stdint.h"
 

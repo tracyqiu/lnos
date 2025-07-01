@@ -20,10 +20,13 @@ static task_t* add_task(task_t* task)
       task_t* p = task_list;
       while (p->next != NULL) {
          p = p->next;
+
+         #if DEF_DEBUG_TRACE
          char buf[32];
          puts("p addr: ");
          puts(itoa((uint32_t)p, buf, 16));
          puts("\n");
+         #endif
       }
       p->next = task;
       task->next = NULL;

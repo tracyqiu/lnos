@@ -12,6 +12,7 @@ extern task_t* task_lists[TASK_ENTRIES];
 
 static task_t* current_task = NULL;
 /*
+// temporay solution to do some test
 //------------------------------------------------------------------------------
 static task_t* find_ready_task()
 //------------------------------------------------------------------------------
