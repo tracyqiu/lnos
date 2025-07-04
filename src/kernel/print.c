@@ -1,6 +1,7 @@
 #include "print.h"
-#include "stdint.h"
 #include "x86.h"
+#include "stdlib.h"
+#include "stdarg.h"
 
 // vga address
 #define VGA_STARTED_MEMORY_ADDR 0xB8000
@@ -167,10 +168,91 @@ static void putc(char c, int16_t col, int16_t row)
    }
 }
 
+
+//------------------------------------------------------------------------------
+static int32_t uint_to_string(uint32_t num, char* buffer, int32_t base, bool uppercase)
+//------------------------------------------------------------------------------
+{
+   if (num == 0) {
+      buffer[0] = '0';
+      buffer[1] = '\0';
+      return 1;
+   }
+
+   char digits[] = "0123456789abcdef";
+   char upper_digits[] = "0123456789ABCDEF";
+   char* digit_chars = uppercase ? upper_digits : digits;
+
+   int32_t idx = 0;
+   uint32_t temp_num = num;
+
+   while (temp_num > 0) {
+      temp_num /= base;
+      idx++;
+   }
+
+   buffer[idx] = '\0';
+   int32_t pos = idx - 1;
+
+   while (num > 0) {
+      buffer[pos--] = digit_chars[num % base];
+      num /= base;
+   }
+
+   return idx;
+}
+
+//------------------------------------------------------------------------------
+static int32_t int_to_string(int32_t num, char* buffer, int32_t base, bool uppercase)
+//------------------------------------------------------------------------------
+{
+   if (num == 0) {
+      buffer[0] = '0';
+      buffer[1] = '\0';
+      return 1;
+   }
+
+   bool is_negative = false;
+   uint32_t unum;
+
+   if (num < 0 && base == 10) {
+      is_negative = true;
+      unum = (uint32_t)(-num);
+   } else {
+      unum = (uint32_t)num;
+   }
+
+   char digits[] = "0123456789abcdef";
+   char upper_digits[] = "0123456789ABCDEF";
+   char* digit_chars = uppercase ? upper_digits : digits;
+
+   char temp[32];
+   int32_t index = 0;
+
+   while (unum > 0) {
+      temp[index++] = digit_chars[unum % base];
+      unum /= base;
+   }
+
+   int32_t final_index = 0;
+   if (is_negative) {
+      buffer[final_index++] = '-';
+   }
+
+   // reverse
+   for (int32_t i = index - 1; i >= 0; i--) {
+      buffer[final_index++] = temp[i];
+   }
+
+   buffer[final_index] = '\0';
+   return final_index;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 
 //------------------------------------------------------------------------------
-void puts(const char* str)
+int32_t puts(const char* str)
 //------------------------------------------------------------------------------
 {
    int16_t offset = get_cursor();
@@ -185,6 +267,7 @@ void puts(const char* str)
    int16_t col = 0;
    */
 
+   int32_t count = 0;
    while(*str)
    {
       if (*str == '\n') {
@@ -194,6 +277,25 @@ void puts(const char* str)
       }
       else if (*str == '\r') {
          col = 0;
+      }
+      else if (*str == '\t') {
+         col = (col + 4) & ~3;
+         if (col >= SCREEN_WIDTH) {
+            col = 0;
+            ++row;
+            scroll_screen(&row);
+         }
+      }
+      else if (*str == '\b') {
+         if (col > 0) {
+            --col;
+            putc(' ', col, row);
+         }
+         else if (row > 0) {
+            --row;
+            col = SCREEN_WIDTH - 1;
+            putc(' ', col, row);
+         }
       }
       else
       {
@@ -207,10 +309,12 @@ void puts(const char* str)
          }
       }
 
+      ++count;
       ++str;
    }
 
    set_cursor(row * SCREEN_WIDTH + col);
+   return count; // return the number of characters printed
 }
 
 //------------------------------------------------------------------------------
@@ -225,3 +329,211 @@ void clear_screen() {
    set_cursor(0);
 }
 
+
+//------------------------------------------------------------------------------
+int32_t printf(const char* format, ...)
+//------------------------------------------------------------------------------
+{
+   va_list args;
+   va_start(args, format);
+
+   const char* p = format;
+   int32_t chars_printed = 0;
+   char buffer[64];
+
+   while (*p) {
+      if (*p == '%' && *(p + 1)) {
+         p++;  // skip '%'
+
+         switch (*p) {
+            case 'c': {
+               char c = (char)va_arg(args, int32_t);
+               char arr[2] = {c, '\0'};
+               puts(arr);
+               chars_printed++;
+               break;
+            }
+            case 's': {
+               char* str = va_arg(args, char*);
+               int32_t len = puts(str);
+               chars_printed += len;
+               break;
+            }
+            case 'd':
+            case 'i': {
+               int32_t num = va_arg(args, int32_t);
+               int32_t len = int_to_string(num, buffer, 10, false);
+               puts(buffer);
+               chars_printed += len;
+               break;
+            }
+            case 'u': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, buffer, 10, false);
+               puts(buffer);
+               chars_printed += len;
+               break;
+            }
+            case 'x': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, buffer, 16, false);
+               puts(buffer);
+               chars_printed += len;
+               break;
+            }
+            case 'X': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, buffer, 16, true);
+               puts(buffer);
+               chars_printed += len;
+               break;
+            }
+            case 'o': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, buffer, 8, false);
+               puts(buffer);
+               chars_printed += len;
+               break;
+            }
+            case 'p': {
+               // pointer
+               void* ptr = va_arg(args, void*);
+               puts("0x");
+               int32_t len = uint_to_string((uint32_t)ptr, buffer, 16, false);
+               puts(buffer);
+               chars_printed += len + 2;
+               break;
+            }
+            case '%': {
+               // character '%'
+               char arr[2] = {'%', '\0'};
+               puts(arr);
+               chars_printed++;
+               break;
+            }
+            default: {
+               // unknown format specifier, print '%' and the character
+               char arr[3] = {'%', *p, '\0'};
+               puts(arr);
+               chars_printed += 2;
+               break;
+            }
+         }
+      }
+      else {
+         char arr[2] = {*p, '\0'};
+         puts(arr);
+         chars_printed++;
+      }
+
+      p++;
+   }
+
+   va_end(args);
+   return chars_printed; // return the number of characters printed
+}
+
+//------------------------------------------------------------------------------
+int32_t sprintf(char* buffer, const char* format, ...)
+//------------------------------------------------------------------------------
+{
+   va_list args;
+   va_start(args, format);
+
+   const char* p = format;
+   char tmpbuf[64];
+   int32_t chars_written = 0;
+
+   while (*p) {
+      if (*p == '%' && *(p + 1)) {
+         p++;
+
+         switch (*p) {
+            case 'c': {
+               char c = (char)va_arg(args, int32_t);
+               buffer[chars_written++] = c;
+               break;
+            }
+            case 's': {
+               char* str = va_arg(args, char*);
+               if (!str) str = "(null)";
+               while (*str) {
+                  buffer[chars_written++] = *str++;
+               }
+               break;
+            }
+            case 'd':
+            case 'i': {
+               int32_t num = va_arg(args, int32_t);
+               int32_t len = int_to_string(num, tmpbuf, 10, false);
+               for (int32_t i = 0; i < len; i++) {
+                  buffer[chars_written++] = tmpbuf[i];
+               }
+               break;
+            }
+            // TODO: issue >> cause reboot even if not been called
+            // case 'u': {
+            //    uint32_t num = va_arg(args, uint32_t);
+            //    int32_t len = uint_to_string(num, tmpbuf, 10, false);
+            //    for (int32_t i = 0; i < len; i++) {
+            //       if (tmpbuf[i] == '\0') break;
+            //       buffer[chars_written++] = tmpbuf[i];
+            //    }
+            //    break;
+            // }
+            // case 'x': {
+            //    uint32_t num = va_arg(args, uint32_t);
+            //    int32_t len = uint_to_string(num, tmpbuf, 16, false);
+            //    for (int32_t i = 0; i < len; i++) {
+            //       buffer[chars_written++] = tmpbuf[i];
+            //    }
+            //    break;
+            // }
+            // case 'X': {
+            //    uint32_t num = va_arg(args, uint32_t);
+            //    int32_t len = uint_to_string(num, tmpbuf, 16, true);
+            //    for (int32_t i = 0; i < len; i++) {
+            //       buffer[chars_written++] = tmpbuf[i];
+            //    }
+            //    break;
+            // }
+            // case 'o': {
+            //    uint32_t num = va_arg(args, uint32_t);
+            //    int32_t len = uint_to_string(num, tmpbuf, 8, false);
+            //    for (int32_t i = 0; i < len; i++) {
+            //       buffer[chars_written++] = tmpbuf[i];
+            //    }
+            //    break;
+            // }
+            // case 'p': {
+            //    void* ptr = va_arg(args, void*);
+            //    buffer[chars_written++] = '0';
+            //    buffer[chars_written++] = 'x';
+            //    int32_t len = uint_to_string((uint32_t)ptr, tmpbuf, 16, false);
+            //    for (int32_t i = 0; i < len; i++) {
+            //       buffer[chars_written++] = tmpbuf[i];
+            //    }
+            //    break;
+            // }
+            case '%': {
+               buffer[chars_written++] = '%';
+               break;
+            }
+            default: {
+               buffer[chars_written++] = '%';
+               buffer[chars_written++] = *p;
+               break;
+            }
+         }
+      }
+      else {
+         buffer[chars_written++] = *p;
+      }
+
+      p++;
+   }
+
+   buffer[chars_written] = '\0';
+   va_end(args);
+   return chars_written;
+}

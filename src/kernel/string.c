@@ -83,3 +83,12 @@ void *memmove(void *dest, const void *src, uint32_t n)
 
     return dest;
 }
+
+//------------------------------------------------------------------------------
+int32_t strlen(const char* str)
+//------------------------------------------------------------------------------
+{
+    int32_t len = 0;
+    while (str[len]) len++;
+    return len;
+}

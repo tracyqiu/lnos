@@ -9,4 +9,6 @@ void test_task_2();
 void test_task_3();
 void test_task_4();
 
+void test_printf();
+
 #endif

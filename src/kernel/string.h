@@ -17,4 +17,6 @@ void* memcpy(void* destination, const void* source, uint32_t num);
 
 void *memmove(void *dest, const void *src, uint32_t n);
 
+int32_t strlen(const char* str);
+
 #endif

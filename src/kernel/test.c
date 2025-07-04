@@ -46,7 +46,6 @@ void test_malloc_virtual_memory()
       puts("addr0(8KB)=");
       char buf[32];
       puts(itoa((int32_t)mm0, buf, 16));
-
       puts(", addr1(2KB)=");
       puts(itoa((int32_t)mm1, buf, 16));
       puts(" >>> SUCCESS :)\n");
@@ -125,4 +124,29 @@ void test_task_4()
          asm volatile("nop");
       }
    }
+}
+
+//------------------------------------------------------------------------------
+void test_printf()
+//------------------------------------------------------------------------------
+{
+   #ifdef DEF_DEBUG_TRACE
+   printf("=== Start Printf Test ===\n");
+   printf("String: %s\n", "Hello, OS! :)");
+   printf("Integer: %d\n", 123);
+   printf("Negative: %d\n", -123);
+   printf("Unsigned: %u\n", 4294967295U);
+   printf("Hex lower: %x\n", 255);
+   printf("Hex upper: %X\n", 255);
+   printf("Octal: %o\n", 8);
+   printf("Character: %c\n", 'A');
+   printf("Pointer: %p\n", (void*)0x12345678);
+   printf("Percent: %%\n");
+   printf("Multiple formats: %s, %d, %i, %uU, 0x%x, 0x%X, 0%o, %p\n", ":)", 123, -123, 4294967295U, 255, 255, 8, (void*)0x12345678);
+
+   // char buffer[128];
+   // sprintf(buffer, "%s, %d, %i, %uU, 0x%x, 0x%X, 0%o, %p\n", ":)", 123, -123, 4294967295U, 255, 255, 8, (void*)0x12345678);
+   // printf("sprintf result: %s\n", buffer);
+   printf("=== End Printf Test ===\n");
+   #endif
 }

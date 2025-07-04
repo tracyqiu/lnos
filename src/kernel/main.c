@@ -11,6 +11,7 @@
 #include "schedule.h"
 #include "test.h"
 
+
 //------------------------------------------------------------------------------
 // Specify the section name.
 // Otherwise, combining it with the setting in the makefile will prevent other functions from being defined before this one.
@@ -35,6 +36,8 @@ __attribute__((section(".text.c_start"))) void cstart(void)
    init_paging();
    puts("Virtual address initialized.\n");
    test_malloc_virtual_memory();
+
+   test_printf();
 
    (void)create_task((void*)test_task_1, "test_task_1", TASK_PRIORITY_NORMAL);
    (void)create_task((void*)test_task_2, "test_task_2", TASK_PRIORITY_NORMAL);
