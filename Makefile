@@ -15,7 +15,7 @@ all: bootloader kernel
 	dd if=${BUILD_DIR}/kernel.bin of=$(HD_IMG_NAME) bs=512 seek=5 conv=notrunc
 
 
-bootloader:
+bootloader: $(BUILD_DIR)/kernel_sectors.inc
 	mkdir -p $(BUILD_DIR)
 	$(MAKE) -C $(SRC_DIR)/bootloader BUILD_DIR=$(abspath $(BUILD_DIR))
 
@@ -25,6 +25,12 @@ kernel: $(BUILD_DIR)/kernel.bin
 $(BUILD_DIR)/kernel.bin:
 	mkdir -p $(BUILD_DIR)
 	$(MAKE) -C $(SRC_DIR)/kernel BUILD_DIR=$(abspath $(BUILD_DIR))
+
+
+$(BUILD_DIR)/kernel_sectors.inc: $(BUILD_DIR)/kernel.bin
+	@size=$$(stat -c %s $(BUILD_DIR)/kernel.bin); \
+	sectors=$$(( ($$size + 511) / 512 )); \
+	echo "%define KERNEL_SECTOR_COUNT $$sectors" > $(BUILD_DIR)/kernel_sectors.inc
 
 
 clean:

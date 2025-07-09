@@ -12,12 +12,20 @@
 #include "test.h"
 
 
+// extern uint8_t __bss_start, __bss_end;
+// void clear_bss() {
+//     uint8_t *bss = &__bss_start;
+//     while (bss < &__bss_end) *bss++ = 0;
+// }
+
 //------------------------------------------------------------------------------
 // Specify the section name.
 // Otherwise, combining it with the setting in the makefile will prevent other functions from being defined before this one.
 __attribute__((section(".text.c_start"))) void cstart(void)
 //------------------------------------------------------------------------------
 {
+   // clear_bss();
+
    // clear_screen();
    puts("Welcome to roqiu's LnOS demo :)!\n");
 
@@ -31,7 +39,7 @@ __attribute__((section(".text.c_start"))) void cstart(void)
    puts("Memory initialized.\n");
    test_allocate_physical_memory();
 
-   init_timer(50);
+   init_timer(100);
 
    init_paging();
    puts("Virtual address initialized.\n");

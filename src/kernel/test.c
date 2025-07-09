@@ -144,9 +144,10 @@ void test_printf()
    printf("Percent: %%\n");
    printf("Multiple formats: %s, %d, %i, %uU, 0x%x, 0x%X, 0%o, %p\n", ":)", 123, -123, 4294967295U, 255, 255, 8, (void*)0x12345678);
 
-   // char buffer[128];
-   // sprintf(buffer, "%s, %d, %i, %uU, 0x%x, 0x%X, 0%o, %p\n", ":)", 123, -123, 4294967295U, 255, 255, 8, (void*)0x12345678);
-   // printf("sprintf result: %s\n", buffer);
+   char buffer[128];
+   sprintf(buffer, "%s, %d, %i, %uU, 0x%x, 0x%X, 0%o, %p\n", ":)", 123, -123, 4294967295U, 255, 255, 8, (void*)0x12345678);
+   printf("sprintf result: %s\n", buffer);
    printf("=== End Printf Test ===\n");
    #endif
 }
+
