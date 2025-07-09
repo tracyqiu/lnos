@@ -7,24 +7,26 @@ SECTIONS
 {
   . = phys;
 
-  .text : {
-    /* Make sure the entry point code is placed at the very beginning, 
-     * otherwise the execution entry point will become random when the assembly code file is added. 
+  .text : ALIGN(4K) {
+    /* Make sure the entry point code is placed at the very beginning,
+     * otherwise the execution entry point will become random when the assembly code file is added.
      **/
-    *(.text.c_start) 
-    *(.text) 
+    *(.text.c_start)
+    *(.text)
   }
 
-  .rodata : {
+  .rodata : ALIGN(4K) {
       *(.rodata)
   }
 
-  .data : { 
-    *(.data) 
+  .data : ALIGN(4K) {
+    *(.data)
   }
 
-  .bss : {
+  .bss : ALIGN(4K) {
+    __bss_start = .;
     *(.bss)
     *(COMMON)
+    __bss_end = .;
   }
 }

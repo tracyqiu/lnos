@@ -471,50 +471,49 @@ int32_t sprintf(char* buffer, const char* format, ...)
                }
                break;
             }
-            // TODO: issue >> cause reboot even if not been called
-            // case 'u': {
-            //    uint32_t num = va_arg(args, uint32_t);
-            //    int32_t len = uint_to_string(num, tmpbuf, 10, false);
-            //    for (int32_t i = 0; i < len; i++) {
-            //       if (tmpbuf[i] == '\0') break;
-            //       buffer[chars_written++] = tmpbuf[i];
-            //    }
-            //    break;
-            // }
-            // case 'x': {
-            //    uint32_t num = va_arg(args, uint32_t);
-            //    int32_t len = uint_to_string(num, tmpbuf, 16, false);
-            //    for (int32_t i = 0; i < len; i++) {
-            //       buffer[chars_written++] = tmpbuf[i];
-            //    }
-            //    break;
-            // }
-            // case 'X': {
-            //    uint32_t num = va_arg(args, uint32_t);
-            //    int32_t len = uint_to_string(num, tmpbuf, 16, true);
-            //    for (int32_t i = 0; i < len; i++) {
-            //       buffer[chars_written++] = tmpbuf[i];
-            //    }
-            //    break;
-            // }
-            // case 'o': {
-            //    uint32_t num = va_arg(args, uint32_t);
-            //    int32_t len = uint_to_string(num, tmpbuf, 8, false);
-            //    for (int32_t i = 0; i < len; i++) {
-            //       buffer[chars_written++] = tmpbuf[i];
-            //    }
-            //    break;
-            // }
-            // case 'p': {
-            //    void* ptr = va_arg(args, void*);
-            //    buffer[chars_written++] = '0';
-            //    buffer[chars_written++] = 'x';
-            //    int32_t len = uint_to_string((uint32_t)ptr, tmpbuf, 16, false);
-            //    for (int32_t i = 0; i < len; i++) {
-            //       buffer[chars_written++] = tmpbuf[i];
-            //    }
-            //    break;
-            // }
+            case 'u': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, tmpbuf, 10, false);
+               for (int32_t i = 0; i < len; i++) {
+                  if (tmpbuf[i] == '\0') break;
+                  buffer[chars_written++] = tmpbuf[i];
+               }
+               break;
+            }
+            case 'x': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, tmpbuf, 16, false);
+               for (int32_t i = 0; i < len; i++) {
+                  buffer[chars_written++] = tmpbuf[i];
+               }
+               break;
+            }
+            case 'X': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, tmpbuf, 16, true);
+               for (int32_t i = 0; i < len; i++) {
+                  buffer[chars_written++] = tmpbuf[i];
+               }
+               break;
+            }
+            case 'o': {
+               uint32_t num = va_arg(args, uint32_t);
+               int32_t len = uint_to_string(num, tmpbuf, 8, false);
+               for (int32_t i = 0; i < len; i++) {
+                  buffer[chars_written++] = tmpbuf[i];
+               }
+               break;
+            }
+            case 'p': {
+               void* ptr = va_arg(args, void*);
+               buffer[chars_written++] = '0';
+               buffer[chars_written++] = 'x';
+               int32_t len = uint_to_string((uint32_t)ptr, tmpbuf, 16, false);
+               for (int32_t i = 0; i < len; i++) {
+                  buffer[chars_written++] = tmpbuf[i];
+               }
+               break;
+            }
             case '%': {
                buffer[chars_written++] = '%';
                break;

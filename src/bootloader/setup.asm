@@ -8,6 +8,8 @@ jmp start
 %include "output.asm"
 %include "mm.asm"
 
+%include "../../build/kernel_sectors.inc"
+
 
 start:
    mov ax, cs
@@ -85,7 +87,7 @@ load_kernel:
    ; 使用LBA模式读取扇区
    mov si, disk_address_packet
    mov word [si], 0x0010      ; 数据包大小 (16 bytes)
-   mov word [si+2], 32        ; 要读取的扇区数
+   mov word [si+2], KERNEL_SECTOR_COUNT        ; 要读取的扇区数
    mov word [si+4], 0x0000    ; 传输缓冲区偏移
    mov word [si+6], 0x1000    ; 传输缓冲区段地址
    mov dword [si+8], 5        ; 起始扇区LBA (0-based)

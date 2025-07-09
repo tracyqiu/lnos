@@ -4,6 +4,10 @@ section .text
 
 global x86_inb
 global x86_outb
+global x86_inw
+global x86_outw
+global x86_inl
+global x86_outl
 global x86_jmp_to_high_virtual_addr
 
 x86_outb:
@@ -16,6 +20,30 @@ x86_inb:
    mov dx, [esp + 4]      ; value
    xor eax, eax
    in al, dx
+   ret
+
+x86_outw:
+   mov dx, [esp + 4]      ; port
+   mov ax, [esp + 8]      ; value
+   out dx, ax
+   ret
+
+x86_inw:
+   mov dx, [esp + 4]      ; value
+   xor eax, eax
+   in ax, dx
+   ret
+
+x86_outl:
+   mov dx, [esp + 4]      ; port
+   mov eax, [esp + 8]      ; value
+   out dx, eax
+   ret
+
+x86_inl:
+   mov dx, [esp + 4]      ; value
+   xor eax, eax
+   in eax, dx
    ret
 
 
