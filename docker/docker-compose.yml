@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  osdev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    image: osdev:latest
+    container_name: osdev-environment
+    volumes:
+      # 挂载源代码目录（实时同步）
+      - ../src:/workspace/src:cached
+      - ../build:/workspace/build:cached
+      - ../tests:/workspace/tests:cached
+      - ../tools:/workspace/tools:cached
+      - ../Makefile:/workspace/Makefile:ro
+      - ../linker.ld:/workspace/linker.ld:ro
+      # 保持构建缓存
+      - osdev-build-cache:/workspace/.build-cache
+      # 保持工具链缓存（避免重复构建）
+      - cross-toolchain:/root/opt/cross
+    working_dir: /workspace
+    tty: true
+    stdin_open: true
+    # 特权模式用于运行QEMU
+    privileged: true
+    # 端口映射
+    ports:
+      - "1234:1234"  # GDB调试端口
+      - "5900:5900"  # VNC端口（如果需要图形界面）
+    environment:
+      - TERM=xterm-256color
+      # 保持与原环境一致的路径
+      - PATH=/root/opt/cross/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    # 网络模式
+    network_mode: bridge
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 1G
+
+volumes:
+  osdev-build-cache:
+    driver: local
+  cross-toolchain:
+    driver: local
