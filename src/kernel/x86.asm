@@ -4,10 +4,14 @@ section .text
 
 global x86_inb
 global x86_outb
+
+%if 0   ; cause data reading error
 global x86_inw
 global x86_outw
 global x86_inl
 global x86_outl
+%endif
+
 global x86_jmp_to_high_virtual_addr
 
 x86_outb:
@@ -22,6 +26,9 @@ x86_inb:
    in al, dx
    ret
 
+
+
+%if 0
 x86_outw:
    mov dx, [esp + 4]      ; port
    mov ax, [esp + 8]      ; value
@@ -45,7 +52,7 @@ x86_inl:
    xor eax, eax
    in eax, dx
    ret
-
+%endif
 
 
 x86_jmp_to_high_virtual_addr:

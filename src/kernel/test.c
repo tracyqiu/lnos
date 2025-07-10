@@ -6,6 +6,7 @@
 #include "mm.h"
 #include "task.h"
 #include "schedule.h"
+#include "disk.h"
 
 
 //------------------------------------------------------------------------------
@@ -151,3 +152,50 @@ void test_printf()
    #endif
 }
 
+//------------------------------------------------------------------------------
+void test_disk_rw()
+//------------------------------------------------------------------------------
+{
+   // read MBR sector 0
+   uint8_t boot_sector[512];
+   if (disk_read(0, 1, boot_sector)) {
+      char buffer[128];
+      sprintf(buffer, "0x%x%x%x%x%x%x...%x%x%x%x",
+         boot_sector[0], boot_sector[1], boot_sector[2],boot_sector[3], boot_sector[4], boot_sector[5],
+         boot_sector[508], boot_sector[509], boot_sector[510], boot_sector[511]);
+      if (boot_sector[0] == 0xEB && boot_sector[1] == 0x5C
+         && boot_sector[510] == 0x55 && boot_sector[511] == 0xAA) {
+         printf("Disk read MBR signature %s SUCCEED\n", buffer);
+      } else {
+         printf("Ops, disk read MBR signature is invalid :(\n");
+      }
+   } else {
+      printf("Ops, disk read failed :(\n");
+   }
+
+   boot_sector[508] = 0x55;
+   boot_sector[509] = 0xAA;
+   if (disk_write(0, 1, boot_sector)) {
+      uint8_t tmpbuf[512];
+      disk_read(0, 1, tmpbuf);
+
+      char buffer[128];
+      sprintf(buffer, "0x%x%x%x%x%x%x...%x%x%x%x",
+         tmpbuf[0], tmpbuf[1], tmpbuf[2],tmpbuf[3], tmpbuf[4], tmpbuf[5],
+         tmpbuf[508], tmpbuf[509], tmpbuf[510], tmpbuf[511]);
+
+      if (tmpbuf[0] == 0xEB && tmpbuf[1] == 0x5C
+         && tmpbuf[508] == 0x55 && tmpbuf[509] == 0xAA
+         && tmpbuf[510] == 0x55 && tmpbuf[511] == 0xAA) {
+         printf("Disk write MBR signature %s SUCCEED\n", buffer);
+
+         boot_sector[508] = 0x0;
+         boot_sector[509] = 0x0;
+         disk_write(0, 1, boot_sector);
+      } else {
+         printf("Ops, disk write MBR signature is invalid :(\n");
+      }
+   } else {
+      printf("Ops, disk write MBR signature failed :(\n");
+   }
+}

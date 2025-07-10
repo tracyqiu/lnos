@@ -10,6 +10,7 @@
 #include "task.h"
 #include "schedule.h"
 #include "test.h"
+#include "disk.h"
 
 
 // extern uint8_t __bss_start, __bss_end;
@@ -46,6 +47,10 @@ __attribute__((section(".text.c_start"))) void cstart(void)
    test_malloc_virtual_memory();
 
    test_printf();
+
+   disk_init();
+   puts("ATA disk initialized.\n");
+   test_disk_rw();
 
    (void)create_task((void*)test_task_1, "test_task_1", TASK_PRIORITY_NORMAL);
    (void)create_task((void*)test_task_2, "test_task_2", TASK_PRIORITY_NORMAL);

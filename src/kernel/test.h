@@ -11,4 +11,6 @@ void test_task_4();
 
 void test_printf();
 
+void test_disk_rw();
+
 #endif
